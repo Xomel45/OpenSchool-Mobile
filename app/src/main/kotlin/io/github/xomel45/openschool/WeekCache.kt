@@ -88,6 +88,12 @@ class WeekCache(context: Context, private val limit: Int = 60) {
 
     fun clear() { runCatching { root.deleteRecursively() } }
 
+    /** How old each stored week is, in minutes, newest first (for the diagnostics; names and contents stay private). */
+    fun agesMinutes(): List<Long> = runCatching {
+        val now = System.currentTimeMillis()
+        root.walkTopDown().filter { it.isFile && it.name.endsWith(".json") }.map { (now - it.lastModified()) / 60_000 }.sorted().toList()
+    }.getOrDefault(emptyList())
+
     /** Keep the newest [limit] files. */
     private fun prune() {
         val files = root.walkTopDown().filter { it.isFile && it.name.endsWith(".json") }.sortedByDescending { it.lastModified() }.toList()

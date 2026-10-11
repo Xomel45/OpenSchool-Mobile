@@ -38,13 +38,13 @@ class NewsWorker(private val context: Context, params: WorkerParameters) : Corou
         val client = Client()
         client.setSessionFromHeader(header)
         try {
-            val all = client.students()
+            val all = AiLog.timed("background_students") { client.students() }
             val chosen = context.getSharedPreferences("app", Context.MODE_PRIVATE).getString("studentId", null) // the student the user looks at
             val student = all.firstOrNull { it.id == chosen } ?: all.firstOrNull() ?: return@withContext done(0, null)
             val today = LocalDate.now()
             val events = (-1L..1L).flatMap { shift ->
                 val d = today.plusWeeks(shift)
-                eventsOf(client.week(student.id, d.get(IsoFields.WEEK_BASED_YEAR).toUInt(), d.get(IsoFields.WEEK_OF_WEEK_BASED_YEAR).toUInt()))
+                eventsOf(AiLog.timed("background_week") { client.week(student.id, d.get(IsoFields.WEEK_BASED_YEAR).toUInt(), d.get(IsoFields.WEEK_OF_WEEK_BASED_YEAR).toUInt()) })
             }
             val fresh = news.absorb(student.id, events)
             if (fresh.isNotEmpty()) notifyAbout(context, fresh, news.settings.detail)

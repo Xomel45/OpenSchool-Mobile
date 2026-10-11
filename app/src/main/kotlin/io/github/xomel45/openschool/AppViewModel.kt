@@ -29,6 +29,7 @@ class AppViewModel(private val app: Application) : AndroidViewModel(app) {
     val news = NewsStore(app)
     val net = NetPolicy(app)
     val dev = DevStore(app)
+    init { AiLog.enabled = AiLog.flag || dev.enabled }
     var client = net.newClient()
         private set
     private val _screen = MutableStateFlow<Screen>(Screen.Boot)
@@ -83,7 +84,7 @@ class AppViewModel(private val app: Application) : AndroidViewModel(app) {
     suspend fun tryLogin(header: String): Boolean = withContext(Dispatchers.IO) {
         client = net.newClient() // a clean cookie jar for every attempt
         client.setSessionFromHeader(header)
-        val ok = try { client.checkSession() } catch (e: BridgeException) { false }
+        val ok = try { AiLog.timed("login_check") { client.checkSession() } } catch (e: BridgeException) { false }
         if (ok) {
             store.save(header)
             news.expired = false // a fresh session: the background check may run again
@@ -114,18 +115,18 @@ class AppViewModel(private val app: Application) : AndroidViewModel(app) {
 
     /** Ask the server whether the saved session still works; the text is for the user. */
     suspend fun checkSession(): String = withContext(Dispatchers.IO) {
-        try { if (client.checkSession()) "Сессия действует." else "Сессия не принимается сервером. Выйдите и войдите снова." }
+        try { if (AiLog.timed("check_session") { client.checkSession() }) "Сессия действует." else "Сессия не принимается сервером. Выйдите и войдите снова." }
         catch (e: BridgeException.Network) { if (e.v1.startsWith("HTTP ")) "Госуслуги ответили ошибкой: ${e.v1}" else "Нет связи с Госуслугами." }
         catch (e: BridgeException) { "Неожиданный ответ Госуслуг." }
     }
 
     private suspend fun openHome(onRejected: () -> Screen): Screen = try {
-        val all = client.students()
+        val all = AiLog.timed("students") { client.students() }
         val student = all.firstOrNull { it.id == appPrefs.getString("studentId", null) } ?: all.firstOrNull()
         if (student != null) {
-            val info = try { client.classInfo(student.id, academicYear().toUInt()) } catch (e: BridgeException.Network) { null }
+            val info = try { AiLog.timed("class_info") { client.classInfo(student.id, academicYear().toUInt()) } } catch (e: BridgeException.Network) { null }
             NewsWorker.schedule(app, news.settings) // the background check runs while the session lives
-            Screen.Home(SchoolData(WeekSource { id, y, w -> client.week(id, y, w) }, student, info, app, dev), all)
+            Screen.Home(SchoolData(WeekSource { id, y, w -> AiLog.timed("week") { client.week(id, y, w) } }, student, info, app, dev), all)
         }
         else Screen.Login("К этому аккаунту не привязан ученик. Войдите под аккаунтом ученика.")
     } catch (e: BridgeException.Auth) {

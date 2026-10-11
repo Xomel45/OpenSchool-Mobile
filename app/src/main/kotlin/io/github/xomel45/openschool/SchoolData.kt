@@ -185,6 +185,10 @@ class SchoolData(private val source: WeekSource, private val realStudent: Studen
     )
 
     /** Subjects and teachers as the server names them, for the developer mode's renaming lists. */
+    /** For the diagnostics: the weeks as the server sent them, and which of them came from the phone's memory. */
+    suspend fun rawSnapshot(): List<Week> = lock.withLock { raw.values.toList() }
+    suspend fun staleKeysSnapshot(): Set<String> = lock.withLock { staleKeys.toSet() }
+
     fun knownSubjects(): List<String> = raw.values.flatMap { w -> w.lessons.map { it.subjectName } + w.marks.map { it.subjectName } + w.homeworks.map { it.subjectName } }.filter { it.isNotBlank() }.distinct().sorted()
     fun knownTeachers(): List<uniffi.openschool_bridge.Teacher> = raw.values.flatMap { w -> w.lessons.map { it.teacher } }.filter { it.lastName.isNotBlank() }.distinctBy { teacherKey(it) }.sortedBy { it.lastName }
 

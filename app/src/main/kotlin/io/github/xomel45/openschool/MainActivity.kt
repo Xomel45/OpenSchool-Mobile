@@ -32,6 +32,8 @@ class MainActivity : ComponentActivity() {
         val offline = intent.getBooleanExtra("offline", false)
         val demo = intent.getBooleanExtra("demo", false) && (applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0
         val background = BackgroundPrefs(applicationContext)
+        // `--ez ai true` (debug builds): the diagnostics for an AI are offered without the developer mode.
+        AiLog.flag = intent.getBooleanExtra("ai", false) && (applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0
         setContent {
             AppTheme(ui, background) {
                 Surface(Modifier.fillMaxSize(), color = Color.Transparent, contentColor = MaterialTheme.colorScheme.onBackground) { Root(ui, background, demo, offline) }
@@ -46,6 +48,7 @@ private fun Root(ui: UiPrefs, background: BackgroundPrefs, demo: Boolean, offlin
     val screen by model.screen.collectAsStateWithLifecycle()
     val context = androidx.compose.ui.platform.LocalContext.current
     // The launcher icon follows the choice and the developer mode (a developer-only icon falls back while the mode is off).
+    androidx.compose.runtime.LaunchedEffect(model.dev.enabled) { AiLog.enabled = AiLog.flag || model.dev.enabled }
     androidx.compose.runtime.LaunchedEffect(ui.icon, model.dev.enabled) { LauncherIcon.sync(context, AppIcon.effective(ui.icon, model.dev.enabled)) }
     when (val s = screen) {
         Screen.Boot -> Centered { CircularProgressIndicator() }

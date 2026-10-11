@@ -45,7 +45,7 @@ import androidx.compose.ui.unit.sp
 
 /** The settings pages: the list shows these, a tap opens one. */
 private enum class Section(val title: String) {
-    Look("Оформление"), Developer("Для разработчика"), Background("Фон"), Notifications("Уведомления"), Network("Сеть"), Transfer("Перенос настроек"), Account("Аккаунт"), About("О приложении"),
+    Look("Оформление"), Developer("Для разработчика"), Ai("Диагностика для ИИ"), Background("Фон"), Notifications("Уведомления"), Network("Сеть"), Transfer("Перенос настроек"), Account("Аккаунт"), About("О приложении"),
 }
 
 @Composable
@@ -60,7 +60,7 @@ fun SettingsScreen(
     if (section == null) {
         LazyColumn(Modifier.fillMaxWidth(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             item { Text("Настройки", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold) }
-            Section.entries.filter { it != Section.Developer || data.dev.enabled }.forEach { s ->
+            Section.entries.filter { (it != Section.Developer || data.dev.enabled) && (it != Section.Ai || data.dev.enabled || AiLog.flag) }.forEach { s ->
                 item(key = s.name) {
                     val summary = when (s) {
                         Section.Look -> "${ui.style.title} · ${if (ui.style == StylePref.Terminal) "тёмная" else ui.scheme.title.lowercase()} · ${ui.zoom.let { (it * 100).toInt() }}%"
@@ -72,6 +72,7 @@ fun SettingsScreen(
                         Section.Transfer -> "Экспорт и импорт файла"
                         Section.Account -> "${titleCase(data.student.firstName)} ${titleCase(data.student.lastName)}".trim()
                         Section.About -> "Версия $version"
+                        Section.Ai -> "Отчёт без личных данных"
                         Section.Developer -> if (data.dev.overlay.isEmpty) "Правки не заданы" else "Есть изменённые данные"
                     }
                     Card(Modifier.fillMaxWidth().clickable { open = s }) {
@@ -106,6 +107,7 @@ fun SettingsScreen(
                         Text("OpenSchool $version. Неофициальный клиент «Моя школа» (Госуслуги).", Modifier.clickable(onClick = tap), color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     Section.Developer -> item { DevSettings(data, data.dev) }
+                    Section.Ai -> item { AiSettings(data, ui, background, news, net, account.students.size) }
                 }
             }
         }
