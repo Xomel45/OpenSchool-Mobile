@@ -37,11 +37,14 @@ private enum class Tab(val title: String, val icon: ImageVector) {
 
 /** The signed-in app: the pages of the desktop menu as a bottom bar. */
 @Composable
-fun AppShell(data: SchoolData, ui: UiPrefs, background: BackgroundPrefs, news: NewsStore, net: NetPolicy, account: AccountActions, onLogout: () -> Unit, onExpired: () -> Unit) {
+fun AppShell(data: SchoolData, dev: DevStore, ui: UiPrefs, background: BackgroundPrefs, news: NewsStore, net: NetPolicy, account: AccountActions, onLogout: () -> Unit, onExpired: () -> Unit) {
     var tab by rememberSaveable { mutableStateOf(Tab.Home) }
     var feed by rememberSaveable { mutableStateOf(false) }
     androidx.compose.runtime.LaunchedEffect(feed) { news.reload() } // the background check may have added items
+    androidx.compose.runtime.LaunchedEffect(dev.overlay, dev.enabled) { data.rebuild() } // the changes of the developer mode decide what the screens are built from
+    ProvideDev(dev) {
     Scaffold(
+        topBar = { Column { if (dev.enabled) DevBanner(dev); OfflineBanner(data) } },
         bottomBar = {
             NavigationBar {
                 Tab.entries.forEach { t ->
@@ -60,5 +63,6 @@ fun AppShell(data: SchoolData, ui: UiPrefs, background: BackgroundPrefs, news: N
                 Tab.Tasks -> TasksScreen(data, onExpired)
             }
         }
+    }
     }
 }

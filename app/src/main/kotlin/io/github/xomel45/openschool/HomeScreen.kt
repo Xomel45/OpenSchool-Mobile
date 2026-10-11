@@ -127,6 +127,7 @@ fun HomeScreen(data: SchoolData, news: NewsStore, onBell: () -> Unit, onExpired:
                 Text(emptyText(day, data.today), color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             items(dayData.rows, key = { it.lesson.id }) { row -> LessonCard(row, data, onOpen = { selected = row }) }
+            if (data.dev.enabled) item { AddLessonButton(day) }
             if (dayData.orphanHomework.isNotEmpty()) item {
                 Card(Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(12.dp)) {
@@ -139,7 +140,7 @@ fun HomeScreen(data: SchoolData, news: NewsStore, onBell: () -> Unit, onExpired:
     }
 
     selected?.let { row ->
-        ModalBottomSheet(onDismissRequest = { selected = null }) { LessonDetails(row, day) }
+        ModalBottomSheet(onDismissRequest = { selected = null }) { LessonDetails(row, day, onChanged = { selected = null }) }
     }
 }
 
@@ -154,12 +155,7 @@ private fun StudentCard(data: SchoolData, news: NewsStore, onBell: () -> Unit) {
     val s = data.student
     val c = data.classInfo
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Box(Modifier.size(54.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary), contentAlignment = Alignment.Center) {
-            Text(
-                (s.firstName.take(1) + s.lastName.take(1)).uppercase(),
-                color = MaterialTheme.colorScheme.onPrimary, fontWeight = FontWeight.Bold, fontSize = 19.sp,
-            )
-        }
+        Avatar((s.firstName.take(1) + s.lastName.take(1)).uppercase(), 54, MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.onPrimary, 19)
         Column(Modifier.weight(1f).padding(start = 12.dp)) {
             Text("${titleCase(s.firstName)} ${titleCase(s.lastName)}".trim(), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
             if (c != null) {
@@ -231,14 +227,24 @@ internal fun HomeworkRow(h: Homework, data: SchoolData, prefix: String = "") {
             color = if (done) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
             textDecoration = if (done) androidx.compose.ui.text.style.TextDecoration.LineThrough else null,
         )
+        HomeworkPencil(h)
     }
 }
 
 @Composable
-internal fun LessonDetails(row: LessonRow, day: LocalDate) {
+internal fun LessonDetails(row: LessonRow, day: LocalDate, onChanged: () -> Unit = {}) {
     val l = row.lesson
     val state = lessonState(l)
+    val dev = devOn()
+    var editLesson by remember { mutableStateOf(false) }
+    var addHomework by remember { mutableStateOf(false) }
+    if (dev != null && editLesson) LessonEditDialog(row, day, dev) { editLesson = false; if (it) onChanged() }
+    if (dev != null && addHomework) AddHomeworkDialog(row, day, dev) { addHomework = false; if (it) onChanged() }
     Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(bottom = 32.dp)) {
+        if (dev != null) Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(bottom = 8.dp)) {
+            OutlinedButton({ editLesson = true }) { Text("Изменить урок") }
+            OutlinedButton({ addHomework = true }) { Text("Добавить задание") }
+        }
         Text(l.subjectName, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
         Text("${day.dayOfMonth} ${MONTHS[day.monthValue - 1]} · $state", color = MaterialTheme.colorScheme.onSurfaceVariant)
         HorizontalDivider(Modifier.padding(vertical = 12.dp))

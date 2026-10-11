@@ -135,7 +135,7 @@ fun ScheduleScreen(data: SchoolData, onExpired: () -> Unit) {
             dismissButton = { TextButton({ calendar = false }) { Text("Отмена") } },
         ) { DatePicker(state) }
     }
-    selected?.let { (row, d) -> ModalBottomSheet(onDismissRequest = { selected = null }) { LessonDetails(row, d) } }
+    selected?.let { (row, d) -> ModalBottomSheet(onDismissRequest = { selected = null }) { LessonDetails(row, d, onChanged = { selected = null }) } }
 }
 
 @Composable
@@ -163,6 +163,7 @@ private fun DayPage(d: LocalDate, data: SchoolData, onExpired: () -> Unit, onOpe
         if (loading && failure == null && day.rows.isEmpty()) item { Text("Загрузка…", color = MaterialTheme.colorScheme.onSurfaceVariant) }
         if (!loading && failure == null && day.rows.isEmpty() && day.orphanHomework.isEmpty()) item { Text(emptyText(d, data.today), color = MaterialTheme.colorScheme.onSurfaceVariant) }
         items(day.rows.size, key = { day.rows[it].lesson.id }) { i -> LessonCard(day.rows[i], data, onOpen = { onOpen(day.rows[i], d) }) }
+        if (data.dev.enabled) item { AddLessonButton(d) }
         if (day.orphanHomework.isNotEmpty()) item {
             Card(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(12.dp)) {

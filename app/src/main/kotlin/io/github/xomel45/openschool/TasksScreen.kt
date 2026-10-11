@@ -136,7 +136,7 @@ fun TasksScreen(data: SchoolData, onExpired: () -> Unit) {
             item(key = "task-$d") { TaskDay(d, day, data, onOpen = { selected = it to d }) }
         }
     }
-    selected?.let { (row, day) -> ModalBottomSheet(onDismissRequest = { selected = null }) { LessonDetails(row, day) } }
+    selected?.let { (row, day) -> ModalBottomSheet(onDismissRequest = { selected = null }) { LessonDetails(row, day, onChanged = { selected = null }) } }
 }
 
 @Composable

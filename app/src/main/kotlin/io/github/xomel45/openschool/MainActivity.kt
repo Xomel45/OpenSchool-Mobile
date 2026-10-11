@@ -29,19 +29,20 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         val ui = UiPrefs(applicationContext)
         // `adb shell am start -n ... --ez demo true` in a debug build: invented data instead of an account.
+        val offline = intent.getBooleanExtra("offline", false)
         val demo = intent.getBooleanExtra("demo", false) && (applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0
         val background = BackgroundPrefs(applicationContext)
         setContent {
             AppTheme(ui, background) {
-                Surface(Modifier.fillMaxSize(), color = Color.Transparent) { Root(ui, background, demo) }
+                Surface(Modifier.fillMaxSize(), color = Color.Transparent, contentColor = MaterialTheme.colorScheme.onBackground) { Root(ui, background, demo, offline) }
             }
         }
     }
 }
 
 @Composable
-private fun Root(ui: UiPrefs, background: BackgroundPrefs, demo: Boolean, model: AppViewModel = viewModel()) {
-    androidx.compose.runtime.LaunchedEffect(demo) { if (demo) model.startDemo() }
+private fun Root(ui: UiPrefs, background: BackgroundPrefs, demo: Boolean, offline: Boolean, model: AppViewModel = viewModel()) {
+    androidx.compose.runtime.LaunchedEffect(demo) { if (demo) model.startDemo(offline) }
     val screen by model.screen.collectAsStateWithLifecycle()
     when (val s = screen) {
         Screen.Boot -> Centered { CircularProgressIndicator() }
@@ -55,7 +56,7 @@ private fun Root(ui: UiPrefs, background: BackgroundPrefs, demo: Boolean, model:
             BackHandler(onBack = model::closeWeb) // back leaves the Gosuslugi window for the first screen instead of closing the app
             LoginScreen(model::tryLogin)
         }
-        is Screen.Home -> AppShell(s.data, ui, background, model.news, model.net, AccountActions(s.students, model::selectStudent, model::checkSession), onLogout = model::logout, onExpired = model::expired)
+        is Screen.Home -> AppShell(s.data, model.dev, ui, background, model.news, model.net, AccountActions(s.students, model::selectStudent, model::checkSession), onLogout = model::logout, onExpired = model::expired)
         is Screen.Failed -> Centered {
             Text(s.text)
             Button(onClick = model::start, modifier = Modifier.padding(top = 16.dp)) { Text("Повторить") }

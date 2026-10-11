@@ -28,6 +28,7 @@ class AppViewModel(private val app: Application) : AndroidViewModel(app) {
     private val store = SessionStore(app)
     val news = NewsStore(app)
     val net = NetPolicy(app)
+    val dev = DevStore(app)
     var client = net.newClient()
         private set
     private val _screen = MutableStateFlow<Screen>(Screen.Boot)
@@ -62,8 +63,8 @@ class AppViewModel(private val app: Application) : AndroidViewModel(app) {
 
     /** Settle the route first (a foreign address means no proxy for the login window), then open the Gosuslugi window. */
     /** Debug builds only: invented student and weeks, so every screen can be tried without an account (and without anyone's data). */
-    fun startDemo() {
-        _screen.value = Screen.Home(SchoolData(DemoSource(), DemoSource.student, DemoSource.classInfo, app))
+    fun startDemo(offline: Boolean = false) {
+        _screen.value = Screen.Home(SchoolData(DemoSource(offline), DemoSource.student, DemoSource.classInfo, app, dev))
     }
 
     fun openWeb() {
@@ -94,7 +95,7 @@ class AppViewModel(private val app: Application) : AndroidViewModel(app) {
 
     fun logout() {
         viewModelScope.launch {
-            withContext(Dispatchers.IO) { store.clear(); news.reset(); appPrefs.edit().remove("studentId").apply() }
+            withContext(Dispatchers.IO) { store.clear(); news.reset(); appPrefs.edit().remove("studentId").apply(); WeekCache(app).clear() }
             NewsWorker.cancel(app)
             CookieManager.getInstance().removeAllCookies(null) // or the next login signs the same account straight back in
             CookieManager.getInstance().flush()
@@ -124,7 +125,7 @@ class AppViewModel(private val app: Application) : AndroidViewModel(app) {
         if (student != null) {
             val info = try { client.classInfo(student.id, academicYear().toUInt()) } catch (e: BridgeException.Network) { null }
             NewsWorker.schedule(app, news.settings) // the background check runs while the session lives
-            Screen.Home(SchoolData(WeekSource { id, y, w -> client.week(id, y, w) }, student, info, app), all)
+            Screen.Home(SchoolData(WeekSource { id, y, w -> client.week(id, y, w) }, student, info, app, dev), all)
         }
         else Screen.Login("К этому аккаунту не привязан ученик. Войдите под аккаунтом ученика.")
     } catch (e: BridgeException.Auth) {

@@ -58,9 +58,7 @@ fun AccountSettings(data: SchoolData, news: NewsStore, account: AccountActions, 
     Column(verticalArrangement = Arrangement.spacedBy(18.dp)) {
         Card(Modifier.fillMaxWidth()) {
             Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
-                Box(Modifier.size(52.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary), contentAlignment = Alignment.Center) {
-                    Text((s.firstName.take(1) + s.lastName.take(1)).uppercase(), color = MaterialTheme.colorScheme.onPrimary, fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                }
+                Avatar((s.firstName.take(1) + s.lastName.take(1)).uppercase(), 52, MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.onPrimary, 18)
                 Column(Modifier.padding(start = 12.dp)) {
                     Text(fullName, fontWeight = FontWeight.SemiBold)
                     if (c != null) Text("${c.classNumber} «${c.classLetter}»" + c.schoolName.takeIf { it.isNotBlank() }?.let { " · $it" }.orEmpty(), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)

@@ -15,7 +15,7 @@ import java.time.LocalDate
 import java.time.temporal.IsoFields
 
 /** Invented data for the debug demo mode: lessons Monday to Friday, some marks and homework, one absence. Nobody's real data. */
-class DemoSource : WeekSource {
+class DemoSource(private val offline: Boolean = false) : WeekSource {
     companion object {
         val student = Student("demo", "Иван", "Петров", "", "")
         val classInfo = ClassInfo(
@@ -30,6 +30,7 @@ class DemoSource : WeekSource {
     }
 
     override suspend fun week(studentId: String, year: UInt, isoWeek: UInt): Week {
+        if (offline) throw uniffi.openschool_bridge.BridgeException.Network("no connection (demo)") // to try the offline copy
         val monday = LocalDate.of(year.toInt(), 1, 4).with(IsoFields.WEEK_OF_WEEK_BASED_YEAR, isoWeek.toLong()).with(DayOfWeek.MONDAY)
         val today = LocalDate.now()
         val lessons = mutableListOf<Lesson>()
