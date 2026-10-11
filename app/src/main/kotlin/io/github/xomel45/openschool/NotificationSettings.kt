@@ -61,6 +61,14 @@ fun NotificationSettings(news: NewsStore) {
         }
         Text("Android не запускает проверку чаще, чем раз в 15 минут, и может отложить её в режиме экономии заряда.", Modifier.padding(top = 4.dp), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
         SwitchRow("Показывать предмет и оценку", s.detail) { change(s.copy(detail = it)) }
+        SwitchRow("Не беспокоить ночью", s.quiet) { change(s.copy(quiet = it)) }
+        if (s.quiet) Row(Modifier.padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text("с")
+            OutlinedButton({ pickTime(context, s.quietFrom) { change(s.copy(quietFrom = it)) } }) { Text(minutesToHm(s.quietFrom)) }
+            Text("до")
+            OutlinedButton({ pickTime(context, s.quietTo) { change(s.copy(quietTo = it)) } }) { Text(minutesToHm(s.quietTo)) }
+        }
+        Text("В тихие часы уведомления не всплывают, но проверка идёт, а новое видно в колокольчике. Сообщение о конце сессии ночью тоже не придёт. Если «с» и «до» совпадают, тихих часов нет.", Modifier.padding(top = 4.dp), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
         OutlinedButton(
             onClick = {
                 checking = true
@@ -91,4 +99,9 @@ private fun SwitchRow(label: String, checked: Boolean, onChange: (Boolean) -> Un
         Text(label, Modifier.weight(1f))
         Switch(checked, onChange)
     }
+}
+
+/** The system time dialog (24-hour); the result is minutes since midnight. */
+private fun pickTime(context: android.content.Context, minutes: Int, onPicked: (Int) -> Unit) {
+    android.app.TimePickerDialog(context, { _, h, m -> onPicked(h * 60 + m) }, minutes / 60, minutes % 60, true).show()
 }

@@ -39,7 +39,7 @@ fun interface WeekSource {
     suspend fun week(studentId: String, year: UInt, isoWeek: UInt): Week
 }
 
-class SchoolData(private val source: WeekSource, private val realStudent: Student, private val realClass: ClassInfo?, context: Context, val dev: DevStore = DevStore(context)) {
+class SchoolData(private val source: WeekSource, private val realStudent: Student, private val realClass: ClassInfo?, context: Context, val dev: DevStore = DevStore(context), val files: FileSource? = null) {
     /** What the screens show: the server's student and class, with the developer mode's changes when it is on. */
     val student: Student get() = dev.active.applyStudent(realStudent)
     val classInfo: ClassInfo? get() = dev.active.applyClass(realClass)

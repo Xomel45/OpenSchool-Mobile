@@ -257,7 +257,7 @@ internal fun LessonDetails(row: LessonRow, day: LocalDate, onChanged: () -> Unit
             if (row.homework.isEmpty()) Text("Не задано")
             row.homework.forEach { h ->
                 Text(h.description.ifBlank { "Без текста" })
-                if (h.materials.isNotEmpty()) Text("Вложения: " + h.materials.joinToString { it.name }, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                AttachmentRow(h.materials)
             }
         }
         Section("Оценка") {

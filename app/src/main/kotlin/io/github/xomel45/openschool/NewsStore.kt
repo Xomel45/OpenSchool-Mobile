@@ -19,9 +19,24 @@ data class NewsSettings(
     val intervalMin: Int = 15,
     /** Show the subject and the mark in the notification, not just "new mark". */
     val detail: Boolean = true,
+    /** "Do not disturb at night": no system notifications between [quietFrom] and [quietTo] (minutes since midnight). The check goes on. */
+    val quiet: Boolean = false,
+    val quietFrom: Int = 22 * 60,
+    val quietTo: Int = 7 * 60,
 ) {
     fun wants(kind: Kind) = when (kind) { Kind.Mark -> marks; Kind.Homework -> homework; Kind.Absence -> absences }
+
+    /** Is [minute] (minutes since local midnight) inside the quiet hours? The start is quiet, the end is not; a span may run over
+     *  midnight (22:00-07:00); equal times mean "no quiet hours". */
+    fun isQuiet(minute: Int): Boolean {
+        if (!quiet || quietFrom == quietTo) return false
+        return if (quietFrom < quietTo) minute in quietFrom until quietTo else minute >= quietFrom || minute < quietTo
+    }
 }
+
+/** `HH:MM` <-> minutes since midnight (the settings file writes the quiet hours this way). */
+fun minutesToHm(m: Int): String = "%02d:%02d".format(m / 60, m % 60)
+fun parseHm(s: String?): Int? = Regex("^([01]\\d|2[0-3]):([0-5]\\d)$").matchEntire(s ?: "")?.let { it.groupValues[1].toInt() * 60 + it.groupValues[2].toInt() }
 
 /** Settings, the ids already seen and the "expired" flag of the background check. The seen ids belong to one account and go on logout. */
 class NewsStore(context: Context) {
@@ -34,6 +49,9 @@ class NewsStore(context: Context) {
             absences = prefs.getBoolean("absences", false),
             intervalMin = prefs.getInt("interval", 15).takeIf { it in NEWS_INTERVALS } ?: 15,
             detail = prefs.getBoolean("detail", true),
+            quiet = prefs.getBoolean("quiet", false),
+            quietFrom = prefs.getInt("quietFrom", 22 * 60).takeIf { it in 0..1439 } ?: (22 * 60),
+            quietTo = prefs.getInt("quietTo", 7 * 60).takeIf { it in 0..1439 } ?: (7 * 60),
         )
     )
         private set
@@ -41,7 +59,8 @@ class NewsStore(context: Context) {
     fun update(s: NewsSettings) {
         settings = s
         prefs.edit().putBoolean("marks", s.marks).putBoolean("homework", s.homework).putBoolean("absences", s.absences)
-            .putInt("interval", s.intervalMin).putBoolean("detail", s.detail).apply()
+            .putInt("interval", s.intervalMin).putBoolean("detail", s.detail)
+            .putBoolean("quiet", s.quiet).putInt("quietFrom", s.quietFrom).putInt("quietTo", s.quietTo).apply()
     }
 
     /** The feed, newest first; call [reload] after something else (the background check) may have changed it. */

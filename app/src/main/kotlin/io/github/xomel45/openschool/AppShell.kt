@@ -42,6 +42,7 @@ fun AppShell(data: SchoolData, dev: DevStore, ui: UiPrefs, background: Backgroun
     var feed by rememberSaveable { mutableStateOf(false) }
     androidx.compose.runtime.LaunchedEffect(feed) { news.reload() } // the background check may have added items
     androidx.compose.runtime.LaunchedEffect(dev.overlay, dev.enabled) { data.rebuild() } // the changes of the developer mode decide what the screens are built from
+    androidx.compose.runtime.CompositionLocalProvider(LocalFiles provides data.files) {
     ProvideDev(dev) {
     Scaffold(
         topBar = { Column { if (dev.enabled) DevBanner(dev); OfflineBanner(data) } },
@@ -63,6 +64,7 @@ fun AppShell(data: SchoolData, dev: DevStore, ui: UiPrefs, background: Backgroun
                 Tab.Tasks -> TasksScreen(data, onExpired)
             }
         }
+    }
     }
     }
 }

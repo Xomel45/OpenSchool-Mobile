@@ -96,7 +96,7 @@ class AppViewModel(private val app: Application) : AndroidViewModel(app) {
 
     fun logout() {
         viewModelScope.launch {
-            withContext(Dispatchers.IO) { store.clear(); news.reset(); appPrefs.edit().remove("studentId").apply(); WeekCache(app).clear() }
+            withContext(Dispatchers.IO) { store.clear(); news.reset(); appPrefs.edit().remove("studentId").apply(); WeekCache(app).clear(); Attachments.clean(app, all = true) }
             NewsWorker.cancel(app)
             CookieManager.getInstance().removeAllCookies(null) // or the next login signs the same account straight back in
             CookieManager.getInstance().flush()
@@ -126,7 +126,7 @@ class AppViewModel(private val app: Application) : AndroidViewModel(app) {
         if (student != null) {
             val info = try { AiLog.timed("class_info") { client.classInfo(student.id, academicYear().toUInt()) } } catch (e: BridgeException.Network) { null }
             NewsWorker.schedule(app, news.settings) // the background check runs while the session lives
-            Screen.Home(SchoolData(WeekSource { id, y, w -> AiLog.timed("week") { client.week(id, y, w) } }, student, info, app, dev), all)
+            Screen.Home(SchoolData(WeekSource { id, y, w -> AiLog.timed("week") { client.week(id, y, w) } }, student, info, app, dev, FileSource { link -> client.download(link, 0uL) }), all)
         }
         else Screen.Login("К этому аккаунту не привязан ученик. Войдите под аккаунтом ученика.")
     } catch (e: BridgeException.Auth) {

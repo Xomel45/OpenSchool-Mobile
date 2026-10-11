@@ -13,7 +13,10 @@ private const val MAX_CONFIG = 64 * 1024
 private val IMAGE_EXT = setOf("png", "jpg", "jpeg", "webp", "gif", "avif")
 
 /** Values the file may change in the notifications; `null` = not in the file (keep what is set). */
-data class NotificationsPatch(val marks: Boolean?, val homework: Boolean?, val absences: Boolean?, val detail: Boolean?, val intervalMin: Int?)
+data class NotificationsPatch(
+    val marks: Boolean?, val homework: Boolean?, val absences: Boolean?, val detail: Boolean?, val intervalMin: Int?,
+    val quiet: Boolean? = null, val quietFrom: Int? = null, val quietTo: Int? = null,
+)
 
 /** What was read from a settings file: the checked values and the picture, if the file had one. */
 class ImportedSettings(
@@ -42,7 +45,8 @@ object SettingsFile {
         .put("zoom", zoom.toString().toDouble()) // 1.3f is written as 1.3, not as 1.2999999523162842
         .put("icon", icon.id)
         .put("bg", bg.toJson())
-        .put("notifications", JSONObject().put("marks", notifications.marks).put("homework", notifications.homework).put("absences", notifications.absences).put("interval_min", notifications.intervalMin).put("detail", notifications.detail))
+        .put("notifications", JSONObject().put("marks", notifications.marks).put("homework", notifications.homework).put("absences", notifications.absences).put("interval_min", notifications.intervalMin).put("detail", notifications.detail)
+            .put("quiet", JSONObject().put("on", notifications.quiet).put("from", minutesToHm(notifications.quietFrom)).put("to", minutesToHm(notifications.quietTo))))
         .put("network", JSONObject().put("mode", network.name.lowercase()))
 
     fun archive(config: JSONObject, picture: ByteArray?): ByteArray {
@@ -86,8 +90,11 @@ object SettingsFile {
         fun bool(j: JSONObject, k: String): Boolean? = if (j.has(k) && j.get(k) is Boolean) j.getBoolean(k) else null
         val notifications = o.optJSONObject("notifications")?.let { n ->
             val interval = (if (n.has("interval_min")) n.opt("interval_min") else null).let { v -> (v as? Number)?.toInt()?.takeIf { it in FILE_INTERVALS && v.toDouble() == it.toDouble() } }
-            NotificationsPatch(bool(n, "marks"), bool(n, "homework"), bool(n, "absences"), bool(n, "detail"), interval?.let(::clampInterval))
-                .takeIf { it.marks != null || it.homework != null || it.absences != null || it.detail != null || it.intervalMin != null }
+            val q = n.optJSONObject("quiet")
+            NotificationsPatch(
+                bool(n, "marks"), bool(n, "homework"), bool(n, "absences"), bool(n, "detail"), interval?.let(::clampInterval),
+                quiet = q?.let { bool(it, "on") }, quietFrom = q?.let { parseHm(it.opt("from") as? String) }, quietTo = q?.let { parseHm(it.opt("to") as? String) },
+            ).takeIf { it.marks != null || it.homework != null || it.absences != null || it.detail != null || it.intervalMin != null || it.quiet != null || it.quietFrom != null || it.quietTo != null }
         }
         return ImportedSettings(
             style = StylePref.entries.firstOrNull { it.name.equals(o.optString("style"), true) },
@@ -119,7 +126,7 @@ object SettingsFile {
         }
         s.notifications?.let { p ->
             val cur = news.settings
-            news.update(cur.copy(marks = p.marks ?: cur.marks, homework = p.homework ?: cur.homework, absences = p.absences ?: cur.absences, detail = p.detail ?: cur.detail, intervalMin = p.intervalMin ?: cur.intervalMin))
+            news.update(cur.copy(marks = p.marks ?: cur.marks, homework = p.homework ?: cur.homework, absences = p.absences ?: cur.absences, detail = p.detail ?: cur.detail, intervalMin = p.intervalMin ?: cur.intervalMin, quiet = p.quiet ?: cur.quiet, quietFrom = p.quietFrom ?: cur.quietFrom, quietTo = p.quietTo ?: cur.quietTo))
         }
         s.network?.let(net::choose)
         return problem
