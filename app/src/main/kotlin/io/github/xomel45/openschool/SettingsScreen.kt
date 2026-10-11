@@ -96,7 +96,7 @@ fun SettingsScreen(
                     Section.Background -> item { BackgroundSettings(background) }
                     Section.Notifications -> item { NotificationSettings(news) }
                     Section.Network -> item { NetworkSettings(net) }
-                    Section.Transfer -> item { TransferSettings(ui, background) }
+                    Section.Transfer -> item { TransferSettings(ui, background, news, net) }
                     Section.Account -> item { AccountSettings(data, news, account, onLogout) }
                     Section.About -> item {
                         val tap = rememberVersionTapper(data.dev)
