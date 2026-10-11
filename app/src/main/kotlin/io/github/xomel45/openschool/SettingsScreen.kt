@@ -15,7 +15,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.res.painterResource
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
@@ -92,7 +95,7 @@ fun SettingsScreen(
             }
             LazyColumn(Modifier.fillMaxWidth(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 when (section) {
-                    Section.Look -> item { LookSettings(ui) }
+                    Section.Look -> item { LookSettings(ui, data.dev.enabled) }
                     Section.Background -> item { BackgroundSettings(background) }
                     Section.Notifications -> item { NotificationSettings(news) }
                     Section.Network -> item { NetworkSettings(net) }
@@ -112,7 +115,7 @@ fun SettingsScreen(
 /** Style, theme, accent colour and the size of the interface. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun LookSettings(ui: UiPrefs) {
+private fun LookSettings(ui: UiPrefs, dev: Boolean) {
     val dark = isDark(ui)
     Column(verticalArrangement = Arrangement.spacedBy(18.dp)) {
         Block("Стиль") {
@@ -160,6 +163,23 @@ private fun LookSettings(ui: UiPrefs) {
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { ZOOMS.forEach { z -> FilterChip(ui.zoom == z, { ui.chooseZoom(z) }, label = { Text("${(z * 100).toInt()}%") }) } }
             Text("Увеличивает или уменьшает всё приложение целиком.", Modifier.padding(top = 6.dp), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
+        Block("Иконка приложения") {
+            val now = AppIcon.effective(ui.icon, dev)
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                AppIcon.entries.filter { !it.devOnly || dev }.forEach { icon ->
+                    Card(
+                        Modifier.width(88.dp).clickable { ui.chooseIcon(icon) },
+                        border = if (now == icon) androidx.compose.foundation.BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null,
+                    ) {
+                        Column(Modifier.padding(8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                            androidx.compose.foundation.Image(painterResource(iconPreview(icon)), null, Modifier.size(64.dp).clip(RoundedCornerShape(14.dp)))
+                            Text(icon.title, Modifier.padding(top = 6.dp), fontSize = 12.sp)
+                        }
+                    }
+                }
+            }
+            Text("Меняет значок приложения в списке программ. Некоторые лаунчеры при этом убирают ярлык с главного экрана: тогда добавьте его снова.", Modifier.padding(top = 8.dp), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
     }
 }
 
@@ -169,4 +189,18 @@ private fun Block(title: String, content: @Composable () -> Unit) {
         Text(title, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(bottom = 8.dp))
         content()
     }
+}
+
+/** The picture of an icon for the picker (made by icons/make_icons.py in the Desktop repository). */
+private fun iconPreview(icon: AppIcon): Int = when (icon) {
+    AppIcon.Graphite -> R.drawable.ic_prev_graphite
+    AppIcon.Ink -> R.drawable.ic_prev_ink
+    AppIcon.Night -> R.drawable.ic_prev_night
+    AppIcon.Paper -> R.drawable.ic_prev_paper
+    AppIcon.Dusk -> R.drawable.ic_prev_dusk
+    AppIcon.Indigo -> R.drawable.ic_prev_indigo
+    AppIcon.Dawn -> R.drawable.ic_prev_dawn
+    AppIcon.Ring -> R.drawable.ic_prev_ring
+    AppIcon.Disc -> R.drawable.ic_prev_disc
+    AppIcon.Spark -> R.drawable.ic_prev_spark
 }

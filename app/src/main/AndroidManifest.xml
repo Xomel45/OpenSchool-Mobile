@@ -5,14 +5,142 @@
     <application
         android:name=".OpenSchoolApp"
         android:allowBackup="false"
+        android:icon="@mipmap/ic_graphite"
+        android:roundIcon="@mipmap/ic_graphite"
         android:label="OpenSchool"
         android:theme="@android:style/Theme.Material.NoActionBar"
         android:supportsRtl="true">
-        <activity android:name=".MainActivity" android:exported="true">
+        <!-- The launcher entries are the aliases below (one enabled at a time, see AppIcon.kt); the activity itself has none. -->
+        <activity android:name=".MainActivity" android:exported="true" />
+        <activity-alias
+            android:name=".IconGraphite"
+            android:targetActivity=".MainActivity"
+            android:enabled="true"
+            android:exported="true"
+            android:icon="@mipmap/ic_graphite"
+            android:roundIcon="@mipmap/ic_graphite"
+            android:label="OpenSchool">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-        </activity>
+        </activity-alias>
+        <activity-alias
+            android:name=".IconInk"
+            android:targetActivity=".MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_ink"
+            android:roundIcon="@mipmap/ic_ink"
+            android:label="OpenSchool">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:name=".IconNight"
+            android:targetActivity=".MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_night"
+            android:roundIcon="@mipmap/ic_night"
+            android:label="OpenSchool">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:name=".IconPaper"
+            android:targetActivity=".MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_paper"
+            android:roundIcon="@mipmap/ic_paper"
+            android:label="OpenSchool">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:name=".IconDusk"
+            android:targetActivity=".MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_dusk"
+            android:roundIcon="@mipmap/ic_dusk"
+            android:label="OpenSchool">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:name=".IconIndigo"
+            android:targetActivity=".MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_indigo"
+            android:roundIcon="@mipmap/ic_indigo"
+            android:label="OpenSchool">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:name=".IconDawn"
+            android:targetActivity=".MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_dawn"
+            android:roundIcon="@mipmap/ic_dawn"
+            android:label="OpenSchool">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:name=".IconRing"
+            android:targetActivity=".MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_ring"
+            android:roundIcon="@mipmap/ic_ring"
+            android:label="OpenSchool">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:name=".IconDisc"
+            android:targetActivity=".MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_disc"
+            android:roundIcon="@mipmap/ic_disc"
+            android:label="OpenSchool">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:name=".IconSpark"
+            android:targetActivity=".MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_spark"
+            android:roundIcon="@mipmap/ic_spark"
+            android:label="OpenSchool">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
     </application>
 </manifest>

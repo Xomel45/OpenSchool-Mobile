@@ -44,6 +44,9 @@ class MainActivity : ComponentActivity() {
 private fun Root(ui: UiPrefs, background: BackgroundPrefs, demo: Boolean, offline: Boolean, model: AppViewModel = viewModel()) {
     androidx.compose.runtime.LaunchedEffect(demo) { if (demo) model.startDemo(offline) }
     val screen by model.screen.collectAsStateWithLifecycle()
+    val context = androidx.compose.ui.platform.LocalContext.current
+    // The launcher icon follows the choice and the developer mode (a developer-only icon falls back while the mode is off).
+    androidx.compose.runtime.LaunchedEffect(ui.icon, model.dev.enabled) { LauncherIcon.sync(context, AppIcon.effective(ui.icon, model.dev.enabled)) }
     when (val s = screen) {
         Screen.Boot -> Centered { CircularProgressIndicator() }
         is Screen.Login -> Centered {

@@ -17,7 +17,7 @@ data class NotificationsPatch(val marks: Boolean?, val homework: Boolean?, val a
 
 /** What was read from a settings file: the checked values and the picture, if the file had one. */
 class ImportedSettings(
-    val style: StylePref?, val scheme: SchemePref?, val accent: Accent?, val accentHex: String?, val accentGiven: Boolean, val zoom: Float?,
+    val style: StylePref?, val scheme: SchemePref?, val accent: Accent?, val accentHex: String?, val accentGiven: Boolean, val zoom: Float?, val icon: AppIcon?,
     val bg: Bg?, val notifications: NotificationsPatch?, val network: NetMode?, val picture: ByteArray?,
 )
 
@@ -34,12 +34,13 @@ object SettingsFile {
 
     /** The `config.json` of the current choices. */
     fun config(
-        style: StylePref, scheme: SchemePref, accent: Accent?, accentHex: String?, zoom: Float, bg: Bg, notifications: NewsSettings, network: NetMode,
+        style: StylePref, scheme: SchemePref, accent: Accent?, accentHex: String?, zoom: Float, bg: Bg, notifications: NewsSettings, network: NetMode, icon: AppIcon = AppIcon.DEFAULT,
     ): JSONObject = JSONObject()
         .put("format", "openschool-config").put("version", 1)
         .put("style", style.name.lowercase()).put("scheme", scheme.name.lowercase())
         .put("accent", accentHex ?: accent?.name?.lowercase() ?: "default")
         .put("zoom", zoom.toString().toDouble()) // 1.3f is written as 1.3, not as 1.2999999523162842
+        .put("icon", icon.id)
         .put("bg", bg.toJson())
         .put("notifications", JSONObject().put("marks", notifications.marks).put("homework", notifications.homework).put("absences", notifications.absences).put("interval_min", notifications.intervalMin).put("detail", notifications.detail))
         .put("network", JSONObject().put("mode", network.name.lowercase()))
@@ -58,7 +59,7 @@ object SettingsFile {
     }
 
     fun build(ui: UiPrefs, bg: BackgroundPrefs, news: NewsStore, net: NetPolicy): ByteArray =
-        archive(config(ui.style, ui.scheme, ui.accent, ui.accentHex, ui.zoom, bg.bg, news.settings, net.mode), bg.pictureBytes())
+        archive(config(ui.style, ui.scheme, ui.accent, ui.accentHex, ui.zoom, bg.bg, news.settings, net.mode, ui.icon), bg.pictureBytes())
 
     /** Read and check an archive. Only `config.json` and one image `background.<ext>` are looked at; anything else inside is ignored. */
     fun read(data: ByteArray): ImportedSettings {
@@ -95,6 +96,7 @@ object SettingsFile {
             accentHex = accentRaw.takeIf { parseHex(it) != null }?.uppercase(),
             accentGiven = accentRaw == "default" || accent != null || parseHex(accentRaw) != null,
             zoom = o.optDouble("zoom", Double.NaN).toFloat().takeIf { z -> ZOOMS.any { Math.abs(it - z) < 0.001f } }?.let { z -> ZOOMS.first { Math.abs(it - z) < 0.001f } },
+            icon = AppIcon.fromId(if (o.opt("icon") is String) o.getString("icon") else null),
             bg = o.optJSONObject("bg")?.let(::cleanBg),
             notifications = notifications,
             network = o.optJSONObject("network")?.optString("mode")?.let { m -> NetMode.entries.firstOrNull { it.name.equals(m, true) } },
@@ -108,6 +110,7 @@ object SettingsFile {
         s.scheme?.let(ui::chooseScheme)
         if (s.accentGiven) { ui.chooseAccent(s.accent); if (s.accentHex != null) ui.chooseAccentHex(s.accentHex) }
         s.zoom?.let(ui::chooseZoom)
+        s.icon?.let(ui::chooseIcon)
         var problem: String? = null
         if (s.picture != null) problem = bgp.setPictureBytes(s.picture)
         s.bg?.let { b ->

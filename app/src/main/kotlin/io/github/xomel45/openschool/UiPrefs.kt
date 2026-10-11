@@ -53,6 +53,12 @@ class UiPrefs(context: Context) {
     var accentHex by mutableStateOf(prefs.getString("accentHex", "")?.takeIf { parseHex(it) != null })
         private set
 
+    /** The launcher icon the user chose (a developer-only one is used only while the developer mode is on, see [AppIcon.effective]). */
+    var icon by mutableStateOf(AppIcon.fromId(prefs.getString("icon", null)) ?: AppIcon.DEFAULT)
+        private set
+
+    fun chooseIcon(v: AppIcon) { icon = v; prefs.edit().putString("icon", v.id).apply() }
+
     fun chooseAccentHex(hex: String?) { accentHex = hex?.takeIf { parseHex(it) != null }; prefs.edit().putString("accentHex", accentHex ?: "").apply() }
 
     fun chooseZoom(v: Float) { zoom = v; prefs.edit().putFloat("zoom", v).apply() }
