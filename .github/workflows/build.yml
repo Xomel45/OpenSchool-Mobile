@@ -1,0 +1,58 @@
+name: build
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  android:
+    runs-on: ubuntu-24.04
+    steps:
+      # The app expects the Rust bridge next to it (../OpenSchool-Bridge): both repositories are checked out side by side.
+      - uses: actions/checkout@v7
+        with:
+          path: OpenSchool-Mobile
+
+      - uses: actions/checkout@v7
+        with:
+          repository: Xomel45/OpenSchool-Bridge
+          path: OpenSchool-Bridge
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: dtolnay/rust-toolchain@686976e191b89faba57d3206551f0f330d8cb249 # stable
+        with:
+          targets: aarch64-linux-android,x86_64-linux-android
+
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
+        with:
+          workspaces: "OpenSchool-Bridge -> target"
+
+      - name: Android platform and tools
+        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true; "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;36.0.0"
+
+      - name: cargo-ndk
+        run: cargo install cargo-ndk --locked
+
+      - name: Rust bridge for Android and its Kotlin bindings
+        working-directory: OpenSchool-Mobile
+        run: ./scripts/build-bridge.sh
+        env:
+          ANDROID_NDK_HOME: ${{ env.ANDROID_NDK_LATEST_HOME }}
+
+      - name: Unit tests and debug APK
+        working-directory: OpenSchool-Mobile
+        run: ./gradlew --no-daemon testDebugUnitTest assembleDebug
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: openschool-android-debug
+          path: OpenSchool-Mobile/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
