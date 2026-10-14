@@ -3,6 +3,7 @@ package io.github.xomel45.openschool
 import androidx.compose.foundation.background
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -74,11 +75,12 @@ fun MarkChip(value: String, size: Int = 30) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen(data: SchoolData, news: NewsStore, onBell: () -> Unit, onExpired: () -> Unit) {
+fun HomeScreen(data: SchoolData, news: NewsStore, onBell: () -> Unit, onSearch: () -> Unit, onExpired: () -> Unit) {
     val day = data.homeDay
     var state by remember { mutableStateOf<DayState>(DayState.Loading) }
     var retry by remember { mutableStateOf(0) }
     var selected by remember { mutableStateOf<LessonRow?>(null) }
+    var testOpen by remember { mutableStateOf<Pair<LessonRow, LocalDate>?>(null) }
 
     // The day's week, then (quietly) the weeks before it so the "recent marks" strip has something to show.
     LaunchedEffect(day, retry) {
@@ -103,7 +105,8 @@ fun HomeScreen(data: SchoolData, news: NewsStore, onBell: () -> Unit, onExpired:
         Modifier.fillMaxWidth().swipePages(day > data.min, day < data.max, onPrev = { data.homeDay = day.minusDays(1) }, onNext = { data.homeDay = day.plusDays(1) }),
         contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        item { StudentCard(data, news, onBell) }
+        item { StudentCard(data, news, onBell, onSearch) }
+        item { NowBanner(data) }
         item {
             Text("Последние оценки", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             if (recent.isEmpty()) Text("Оценок пока нет", Modifier.padding(top = 6.dp), color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -137,7 +140,9 @@ fun HomeScreen(data: SchoolData, news: NewsStore, onBell: () -> Unit, onExpired:
                 }
             }
         }
+        item { UpcomingTestsCard(data, onOpen = { row, d -> testOpen = row to d }) }
     }
+    testOpen?.let { (row, d) -> ModalBottomSheet(onDismissRequest = { testOpen = null }) { LessonDetails(row, d, onChanged = { testOpen = null }) } }
 
     selected?.let { row ->
         ModalBottomSheet(onDismissRequest = { selected = null }) { LessonDetails(row, day, onChanged = { selected = null }) }
@@ -151,7 +156,7 @@ internal fun emptyText(day: LocalDate, today: LocalDate) = when {
 }
 
 @Composable
-private fun StudentCard(data: SchoolData, news: NewsStore, onBell: () -> Unit) {
+private fun StudentCard(data: SchoolData, news: NewsStore, onBell: () -> Unit, onSearch: () -> Unit) {
     val s = data.student
     val c = data.classInfo
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -163,6 +168,7 @@ private fun StudentCard(data: SchoolData, news: NewsStore, onBell: () -> Unit) {
                 Text("${c.classNumber} «${c.classLetter}»$school", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2, overflow = TextOverflow.Ellipsis)
             }
         }
+        androidx.compose.material3.IconButton(onClick = onSearch) { androidx.compose.material3.Icon(Icons.Filled.Search, contentDescription = "Поиск") }
         androidx.compose.material3.BadgedBox(badge = { if (news.unread > 0) androidx.compose.material3.Badge { Text(if (news.unread > 99) "99+" else "${news.unread}") } }) {
             androidx.compose.material3.IconButton(onClick = onBell) { androidx.compose.material3.Icon(Icons.Filled.Notifications, contentDescription = "Что нового") }
         }
@@ -205,13 +211,17 @@ internal fun LessonCard(row: LessonRow, data: SchoolData, onOpen: () -> Unit) {
             Row(Modifier.fillMaxWidth().clickable(onClick = onOpen).padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text("${row.number}", Modifier.widthIn(min = 22.dp), fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                 Column(Modifier.weight(1f)) {
-                    Text(row.lesson.subjectName, fontWeight = FontWeight.SemiBold)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(row.lesson.subjectName, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f, fill = false))
+                        TestBadge(lessonTest(row))
+                    }
                     Text("${hm(row.lesson.start)}–${hm(row.lesson.end)}", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 row.marks.forEach { Box(Modifier.padding(start = 4.dp)) { MarkChip(it.value, 28) } }
             }
             row.homework.forEach { HomeworkRow(it, data) }
-            if (row.homework.isNotEmpty()) Box(Modifier.padding(bottom = 4.dp))
+            NoteRows(row.lesson.id, data)
+            if (row.homework.isNotEmpty() || data.notes.of(row.lesson.id).isNotEmpty()) Box(Modifier.padding(bottom = 4.dp))
         }
     }
 }
@@ -248,7 +258,10 @@ internal fun LessonDetails(row: LessonRow, day: LocalDate, onChanged: () -> Unit
             OutlinedButton({ editLesson = true }) { Text("Изменить урок") }
             OutlinedButton({ addHomework = true }) { Text("Добавить задание") }
         }
-        Text(l.subjectName, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(l.subjectName, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f, fill = false))
+            TestBadge(lessonTest(row))
+        }
         Text("${day.dayOfMonth} ${MONTHS[day.monthValue - 1]} · $state", color = MaterialTheme.colorScheme.onSurfaceVariant)
         HorizontalDivider(Modifier.padding(vertical = 12.dp))
         Fact("Номер урока", "${row.number}-й")
@@ -263,6 +276,7 @@ internal fun LessonDetails(row: LessonRow, day: LocalDate, onChanged: () -> Unit
                 AttachmentList(h)
             }
         }
+        LocalSchoolData.current?.let { NotesSection(l.id, it) }
         Section("Оценка") {
             if (row.marks.isEmpty()) Text("Пока нет")
             row.marks.forEach { m ->

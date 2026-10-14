@@ -47,7 +47,7 @@ class DemoSource(private val offline: Boolean = false) : WeekSource {
                 val id = "l-$date-$i"
                 val sh = 8 + i; val start = "$date %02d:%02d".format(sh, 30); val end = "$date %02d:%02d".format(sh + 1, 15)
                 val absence = if (date == today.minusDays(3) && i == 0) Absence("Н", "По болезни") else null
-                lessons += Lesson(id, "s-$subject", subject, teacher, start, end, "${100 + i * 3}", if (date <= today) "Тема урока: $subject" else null, absence)
+                lessons += Lesson(id, "s-$subject", subject, teacher, start, end, "${100 + i * 3}", if (i == 1 && date == today.plusDays(2)) "Контрольная работа" else if (date <= today) "Тема урока: $subject" else null, absence)
                 if (date <= today && Math.floorMod(seed, 5) < 2) {
                     val v = listOf("5", "4", "5", "3", "4", "2", "н")[Math.floorMod(seed / 3, 7)]
                     marks += Mark("m-$date-$i", "s-$subject", subject, v, null, date.toString(), "T", "Контрольная работа", null, null, id)

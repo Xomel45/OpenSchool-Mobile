@@ -43,9 +43,7 @@ jobs:
 
       - name: Rust bridge for Android and its Kotlin bindings
         working-directory: OpenSchool-Mobile
-        run: ./scripts/build-bridge.sh
-        env:
-          ANDROID_NDK_HOME: ${{ env.ANDROID_NDK_LATEST_HOME }}
+        run: ./scripts/build-bridge.sh # finds the runner's NDK through ANDROID_NDK_ROOT
 
       - name: Unit tests and debug APK
         working-directory: OpenSchool-Mobile

@@ -42,7 +42,8 @@ fun AppShell(data: SchoolData, dev: DevStore, ui: UiPrefs, background: Backgroun
     var feed by rememberSaveable { mutableStateOf(false) }
     androidx.compose.runtime.LaunchedEffect(feed) { news.reload() } // the background check may have added items
     androidx.compose.runtime.LaunchedEffect(dev.overlay, dev.enabled) { data.rebuild() } // the changes of the developer mode decide what the screens are built from
-    androidx.compose.runtime.CompositionLocalProvider(LocalFiles provides data.files) {
+    var search by rememberSaveable { mutableStateOf(false) }
+    androidx.compose.runtime.CompositionLocalProvider(LocalFiles provides data.files, LocalSchoolData provides data) {
     ProvideDev(dev) {
     Scaffold(
         topBar = { Column { if (dev.enabled) DevBanner(dev); OfflineBanner(data) } },
@@ -54,10 +55,11 @@ fun AppShell(data: SchoolData, dev: DevStore, ui: UiPrefs, background: Backgroun
             }
         },
     ) { padding ->
+        if (search) SearchScreen(data, onClose = { search = false })
         if (feed) FeedSheet(news, onDismiss = { feed = false }, onOpen = { kind -> feed = false; tab = when (kind) { Kind.Mark -> Tab.Marks; Kind.Homework -> Tab.Tasks; Kind.Absence -> Tab.Schedule } })
         Box(Modifier.fillMaxSize().padding(padding)) {
             when (tab) {
-                Tab.Home -> HomeScreen(data, news, onBell = { feed = true }, onExpired = onExpired)
+                Tab.Home -> HomeScreen(data, news, onBell = { feed = true }, onSearch = { search = true }, onExpired = onExpired)
                 Tab.Marks -> MarksScreen(data, onExpired)
                 Tab.Settings -> SettingsScreen(data, ui, background, news, net, account, onLogout)
                 Tab.Schedule -> ScheduleScreen(data, onExpired)

@@ -88,6 +88,26 @@ class SchoolData(private val source: WeekSource, private val realStudent: Studen
     private val cache = WeekCache(context)
     private val appContext = context.applicationContext
 
+    /** My notes for lessons (only on this phone). */
+    val notes = NotesStore(context)
+
+    /** Everything loaded so far (search, charts, the calendar export). */
+    fun allLessons(): List<Lesson> = lessonsByDate.values.flatMap { it.values }
+    fun allHomework(): Collection<Homework> = homework.values
+    fun allMarks(): Collection<Mark> = marks.values
+    fun lessonById(id: String): Lesson? = lessonsByDate.values.firstNotNullOfOrNull { it[id] }
+
+    /** Load every week touching [start]..[end] (also future, unlike [loadRange]); four at a time. Failed weeks are skipped. */
+    suspend fun loadWeeks(start: LocalDate, end: LocalDate, progress: (done: Int, total: Int) -> Unit = { _, _ -> }) {
+        val weeks = generateSequence(start.with(java.time.DayOfWeek.MONDAY)) { it.plusWeeks(1) }.takeWhile { it <= end }.toList()
+        var n = 0
+        weeks.chunked(4).forEach { chunk ->
+            kotlinx.coroutines.coroutineScope { chunk.map { d -> async { try { loadWeek(d) } catch (_: LoadFailure) { } } }.forEach { it.await() } }
+            n += chunk.size
+            progress(n, weeks.size)
+        }
+    }
+
     /** Set while some week shown comes from the phone's memory because Gosuslugi could not be reached: when that data was fetched. */
     var offlineSince by mutableStateOf<Long?>(null)
         private set

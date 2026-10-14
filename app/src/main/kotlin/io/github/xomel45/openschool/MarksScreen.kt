@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.sp
 import java.time.LocalDate
 
 private const val YEAR = 0 // a period id: 1..4 are quarters
+private const val CHARTS = 5 // «Графики»: the year as charts
 
 private sealed interface Load {
     data class Loading(val done: Int, val total: Int) : Load
@@ -54,7 +55,7 @@ private fun defaultPeriod(data: SchoolData): Int {
 
 private fun range(data: SchoolData, period: Int): Pair<LocalDate, LocalDate>? {
     if (data.quarters.isEmpty()) return null
-    if (period == YEAR) return data.quarters.first().second to data.quarters.last().third
+    if (period == YEAR || period == CHARTS) return data.quarters.first().second to data.quarters.last().third
     return data.quarters.firstOrNull { it.first == period }?.let { it.second to it.third }
 }
 
@@ -81,13 +82,13 @@ fun MarksScreen(data: SchoolData, onExpired: () -> Unit) {
 
     @Suppress("UNUSED_EXPRESSION") data.revision // redraw when weeks arrive
 
-    val periods = listOf(1, 2, 3, 4, YEAR)
+    val periods = listOf(1, 2, 3, 4, YEAR, CHARTS)
     LazyColumn(Modifier.fillMaxWidth().swipePages(periods.indexOf(period) > 0, periods.indexOf(period) < periods.lastIndex, onPrev = { period = periods[periods.indexOf(period) - 1] }, onNext = { period = periods[periods.indexOf(period) + 1] }), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item { Text("Оценки", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold) }
         item {
             LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(periods) { p ->
-                    FilterChip(selected = period == p, onClick = { period = p }, label = { Text(if (p == YEAR) "Итог за год" else "$p четверть") })
+                    FilterChip(selected = period == p, onClick = { period = p }, label = { Text(when (p) { YEAR -> "Итог за год"; CHARTS -> "Графики"; else -> "$p четверть" }) })
                 }
             }
         }
@@ -97,7 +98,7 @@ fun MarksScreen(data: SchoolData, onExpired: () -> Unit) {
             else -> {
                 (load as? Load.Failed)?.let { f -> item { Column { Text(f.error.text); Button(onClick = { retry++ }, Modifier.padding(top = 8.dp)) { Text("Повторить") } } } }
                 (load as? Load.Loading)?.let { l -> item { Note("Загрузка оценок… ${l.done} из ${l.total} нед.") } }
-                if (period == YEAR) yearTable(data) else quarterTable(data, span)
+                when (period) { CHARTS -> item { ChartsSection(data, span.first, span.second) }; YEAR -> yearTable(data); else -> quarterTable(data, span) }
             }
         }
     }

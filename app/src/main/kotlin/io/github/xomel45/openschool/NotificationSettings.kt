@@ -47,8 +47,10 @@ fun NotificationSettings(news: NewsStore) {
     fun change(new: NewsSettings) {
         news.update(new)
         NewsWorker.schedule(context, new)
+        EveningWorker.schedule(context, new)
+        NowWorker.schedule(context, new)
         // Android 13+ asks before the first notification.
-        if (Build.VERSION.SDK_INT >= 33 && (new.marks || new.homework || new.absences)) permission.launch(Manifest.permission.POST_NOTIFICATIONS)
+        if (Build.VERSION.SDK_INT >= 33 && (new.marks || new.homework || new.absences || new.evening || new.testReminders || new.nowInShade)) permission.launch(Manifest.permission.POST_NOTIFICATIONS)
     }
 
     Column {
@@ -69,6 +71,17 @@ fun NotificationSettings(news: NewsStore) {
             OutlinedButton({ pickTime(context, s.quietTo) { change(s.copy(quietTo = it)) } }) { Text(minutesToHm(s.quietTo)) }
         }
         Text("В тихие часы уведомления не всплывают, но проверка идёт, а новое видно в колокольчике. Сообщение о конце сессии ночью тоже не придёт. Если «с» и «до» совпадают, тихих часов нет.", Modifier.padding(top = 4.dp), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text("Вечерняя сводка", Modifier.padding(top = 14.dp), style = MaterialTheme.typography.titleSmall)
+        SwitchRow("Сводка на следующий учебный день", s.evening) { change(s.copy(evening = it)) }
+        SwitchRow("Напоминать о контрольных накануне", s.testReminders) { change(s.copy(testReminders = it)) }
+        if (s.evening || s.testReminders) Row(Modifier.padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text("в")
+            OutlinedButton({ pickTime(context, s.eveningAt) { change(s.copy(eveningAt = it)) } }) { Text(minutesToHm(s.eveningAt)) }
+        }
+        Text("Одно уведомление в день: сколько уроков и с какого времени, сколько заданий не отмечено, какие контрольные, ваши заметки. Контрольные узнаются по теме урока и тексту задания, поэтому что-то может быть пропущено. Android может немного задержать сводку в режиме экономии заряда.", Modifier.padding(top = 4.dp), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text("Текущий урок", Modifier.padding(top = 14.dp), style = MaterialTheme.typography.titleSmall)
+        SwitchRow("Текущий урок в шторке", s.nowInShade) { change(s.copy(nowInShade = it)) }
+        Text("Тихое уведомление «Сейчас: предмет, кабинет» с обратным отсчётом до звонка; перед первым уроком появляется за час. Берётся из расписания, сохранённого на телефоне.", Modifier.padding(top = 2.dp), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
         OutlinedButton(
             onClick = {
                 checking = true

@@ -104,7 +104,7 @@ private fun notifyAbout(context: Context, items: List<NewsEvent>, detail: Boolea
     notifyPlain(context, title, body)
 }
 
-private fun notifyPlain(context: Context, title: String, body: String) {
+internal fun notifyPlain(context: Context, title: String, body: String) {
     if (!canNotify(context)) return
     // Quiet hours: nothing pops up (the items are in the feed all the same; the expiry is told when the app is opened).
     if (java.time.LocalTime.now().let { NewsStore(context).settings.isQuiet(it.hour * 60 + it.minute) }) return

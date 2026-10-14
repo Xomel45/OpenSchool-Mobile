@@ -63,6 +63,7 @@ fun ScheduleScreen(data: SchoolData, onExpired: () -> Unit) {
     val scope = rememberCoroutineScope()
     var calendar by remember { mutableStateOf(false) }
     var selected by remember { mutableStateOf<Pair<LessonRow, LocalDate>?>(null) }
+    var icsMessage by remember { mutableStateOf<String?>(null) }
 
     val day = data.min.plusDays(pager.currentPage.toLong())
     // Remember the day for the next visit.
@@ -74,7 +75,11 @@ fun ScheduleScreen(data: SchoolData, onExpired: () -> Unit) {
 
     Column(Modifier.fillMaxSize()) {
         Column(Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp)) {
-            Text("Расписание", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("Расписание", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                IcsButton(data, day) { icsMessage = it }
+            }
+            icsMessage?.let { Text(it, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant) }
             Row(Modifier.fillMaxWidth().padding(top = 10.dp), verticalAlignment = Alignment.CenterVertically) {
                 OutlinedButton({ scope.launch { pager.animateScrollToPage(pager.currentPage - 1) } }, enabled = pager.currentPage > 0, contentPadding = PaddingValues(0.dp), modifier = Modifier.size(44.dp)) { Text("‹", fontSize = 22.sp) }
                 Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {

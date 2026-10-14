@@ -147,9 +147,9 @@ fun TasksScreen(data: SchoolData, onExpired: () -> Unit) {
 @Composable
 private fun TaskDay(d: LocalDate, day: DayData, data: SchoolData, onOpen: (LessonRow) -> Unit) {
     val onlyOpen = data.tasksOpenOnly
-    val cards = day.rows.filter { it.homework.isNotEmpty() }.filter { !onlyOpen || it.homework.any { h -> !data.isDone(h.id) } }
+    val cards = day.rows.filter { it.homework.isNotEmpty() || data.notes.of(it.lesson.id).isNotEmpty() }.filter { !onlyOpen || it.homework.any { h -> !data.isDone(h.id) } || data.notes.of(it.lesson.id).any { n -> !n.done } }
     val orphans = day.orphanHomework.filter { !onlyOpen || !data.isDone(it.id) }
-    val any = day.rows.any { it.homework.isNotEmpty() } || day.orphanHomework.isNotEmpty()
+    val any = day.rows.any { it.homework.isNotEmpty() || data.notes.of(it.lesson.id).isNotEmpty() } || day.orphanHomework.isNotEmpty()
     val word = when (ChronoUnit.DAYS.between(data.today, d).toInt()) { 0 -> " · сегодня"; 1 -> " · завтра"; -1 -> " · вчера"; else -> "" }
     val wd = d.dayOfWeek.getDisplayName(TextStyle.FULL, RU).replaceFirstChar { it.uppercase() }
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {

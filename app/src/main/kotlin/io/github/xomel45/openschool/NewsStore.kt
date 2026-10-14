@@ -23,6 +23,12 @@ data class NewsSettings(
     val quiet: Boolean = false,
     val quietFrom: Int = 22 * 60,
     val quietTo: Int = 7 * 60,
+    /** «Вечерняя сводка» about the next school day at [eveningAt] (minutes since midnight), and tests named in it. */
+    val evening: Boolean = true,
+    val eveningAt: Int = 19 * 60,
+    val testReminders: Boolean = true,
+    /** «Текущий урок в шторке»: a silent notification with a countdown to the next bell (NowWorker). */
+    val nowInShade: Boolean = false,
 ) {
     fun wants(kind: Kind) = when (kind) { Kind.Mark -> marks; Kind.Homework -> homework; Kind.Absence -> absences }
 
@@ -52,6 +58,10 @@ class NewsStore(context: Context) {
             quiet = prefs.getBoolean("quiet", false),
             quietFrom = prefs.getInt("quietFrom", 22 * 60).takeIf { it in 0..1439 } ?: (22 * 60),
             quietTo = prefs.getInt("quietTo", 7 * 60).takeIf { it in 0..1439 } ?: (7 * 60),
+            evening = prefs.getBoolean("evening", true),
+            eveningAt = prefs.getInt("eveningAt", 19 * 60).takeIf { it in 0..1439 } ?: (19 * 60),
+            testReminders = prefs.getBoolean("testReminders", true),
+            nowInShade = prefs.getBoolean("nowInShade", false),
         )
     )
         private set
@@ -60,7 +70,8 @@ class NewsStore(context: Context) {
         settings = s
         prefs.edit().putBoolean("marks", s.marks).putBoolean("homework", s.homework).putBoolean("absences", s.absences)
             .putInt("interval", s.intervalMin).putBoolean("detail", s.detail)
-            .putBoolean("quiet", s.quiet).putInt("quietFrom", s.quietFrom).putInt("quietTo", s.quietTo).apply()
+            .putBoolean("quiet", s.quiet).putInt("quietFrom", s.quietFrom).putInt("quietTo", s.quietTo)
+            .putBoolean("evening", s.evening).putInt("eveningAt", s.eveningAt).putBoolean("testReminders", s.testReminders).putBoolean("nowInShade", s.nowInShade).apply()
     }
 
     /** The feed, newest first; call [reload] after something else (the background check) may have changed it. */
