@@ -42,10 +42,16 @@ class NewsWorker(private val context: Context, params: WorkerParameters) : Corou
             val chosen = context.getSharedPreferences("app", Context.MODE_PRIVATE).getString("studentId", null) // the student the user looks at
             val student = all.firstOrNull { it.id == chosen } ?: all.firstOrNull() ?: return@withContext done(0, null)
             val today = LocalDate.now()
-            val events = (-1L..1L).flatMap { shift ->
+            val weeks = (-1L..1L).map { shift ->
                 val d = today.plusWeeks(shift)
-                eventsOf(AiLog.timed("background_week") { client.week(student.id, d.get(IsoFields.WEEK_BASED_YEAR).toUInt(), d.get(IsoFields.WEEK_OF_WEEK_BASED_YEAR).toUInt()) })
+                AiLog.timed("background_week") { client.week(student.id, d.get(IsoFields.WEEK_BASED_YEAR).toUInt(), d.get(IsoFields.WEEK_OF_WEEK_BASED_YEAR).toUInt()) }
             }
+            // The weeks go to the phone's copy and the widgets are redrawn from it (this run may exist only for the widgets).
+            val cache = WeekCache(context)
+            weeks.forEach { cache.put(student.id, it) }
+            WidgetUpdater.refresh(context)
+            if (!news.settings.marks && !news.settings.homework && !news.settings.absences) return@withContext done(0, null)
+            val events = weeks.flatMap { eventsOf(it) }
             val fresh = news.absorb(student.id, events)
             if (fresh.isNotEmpty()) notifyAbout(context, fresh, news.settings.detail)
             done(fresh.size, null)
@@ -66,7 +72,8 @@ class NewsWorker(private val context: Context, params: WorkerParameters) : Corou
         /** (Re)start the periodic check with the saved interval, or stop it when nothing is wanted. */
         fun schedule(context: Context, settings: NewsSettings) {
             val wm = WorkManager.getInstance(context)
-            if (!settings.marks && !settings.homework && !settings.absences) { wm.cancelUniqueWork(UNIQUE); return }
+            // Notifications are off: the check still runs while a widget is on the screen (it keeps the widget's data fresh).
+            if (!settings.marks && !settings.homework && !settings.absences && !WidgetUpdater.anyWidget(context)) { wm.cancelUniqueWork(UNIQUE); return }
             val request = PeriodicWorkRequestBuilder<NewsWorker>(settings.intervalMin.toLong(), TimeUnit.MINUTES)
                 .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
                 .build()

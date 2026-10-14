@@ -52,6 +52,7 @@ private fun taskDays(data: SchoolData, upcoming: Boolean, page: Int): List<Local
 @Composable
 fun TasksScreen(data: SchoolData, onExpired: () -> Unit) {
     var upcoming by rememberSaveable { mutableStateOf(true) }
+    var filesTab by rememberSaveable { mutableStateOf(false) }
     var upPage by rememberSaveable { mutableIntStateOf(0) }
     var pastPage by rememberSaveable { mutableIntStateOf(0) }
     var failure by remember { mutableStateOf<LoadFailure?>(null) }
@@ -101,14 +102,17 @@ fun TasksScreen(data: SchoolData, onExpired: () -> Unit) {
     val allHw = shown.flatMap { (_, day) -> day.rows.flatMap { it.homework } + day.orphanHomework }
     val left = allHw.count { !data.isDone(it.id) }
 
-    LazyColumn(Modifier.fillMaxWidth().swipePages(canPrev, canNext, onPrev = { step(-1) }, onNext = { step(1) }), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    LazyColumn(Modifier.fillMaxWidth().swipePages(canPrev && !filesTab, canNext && !filesTab, onPrev = { step(-1) }, onNext = { step(1) }), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         item { Text("Задания", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold) }
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                FilterChip(upcoming, { upcoming = true; upPage = 0 }, label = { Text("Предстоящие") })
-                FilterChip(!upcoming, { upcoming = false; pastPage = 0 }, label = { Text("Прошедшие") })
+                FilterChip(upcoming && !filesTab, { filesTab = false; upcoming = true; upPage = 0 }, label = { Text("Предстоящие") })
+                FilterChip(!upcoming && !filesTab, { filesTab = false; upcoming = false; pastPage = 0 }, label = { Text("Прошедшие") })
+                FilterChip(filesTab, { filesTab = true }, label = { Text("Файлы") })
             }
         }
+        if (filesTab) item { DownloadsList() }
+        if (!filesTab) {
         item {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 OutlinedButton({ step(-1) }, enabled = canPrev, contentPadding = PaddingValues(0.dp), modifier = Modifier.size(44.dp)) { Text("‹", fontSize = 22.sp) }
@@ -134,6 +138,7 @@ fun TasksScreen(data: SchoolData, onExpired: () -> Unit) {
         if (days.isEmpty()) item { Text("Нет данных за этот период.", color = MaterialTheme.colorScheme.onSurfaceVariant) }
         if (failure == null && !(loading && allHw.isEmpty())) shown.forEach { (d, day) ->
             item(key = "task-$d") { TaskDay(d, day, data, onOpen = { selected = it to d }) }
+        }
         }
     }
     selected?.let { (row, day) -> ModalBottomSheet(onDismissRequest = { selected = null }) { LessonDetails(row, day, onChanged = { selected = null }) } }

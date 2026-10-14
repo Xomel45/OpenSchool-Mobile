@@ -219,6 +219,7 @@ internal fun LessonCard(row: LessonRow, data: SchoolData, onOpen: () -> Unit) {
 @Composable
 internal fun HomeworkRow(h: Homework, data: SchoolData, prefix: String = "") {
     val done = data.isDone(h.id)
+    Column {
     Row(Modifier.fillMaxWidth().clickable { data.setDone(h.id, !done) }.padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
         Checkbox(checked = done, onCheckedChange = { data.setDone(h.id, it) })
         Text(
@@ -228,6 +229,8 @@ internal fun HomeworkRow(h: Homework, data: SchoolData, prefix: String = "") {
             textDecoration = if (done) androidx.compose.ui.text.style.TextDecoration.LineThrough else null,
         )
         HomeworkPencil(h)
+    }
+    AttachmentCount(h)
     }
 }
 
@@ -257,7 +260,7 @@ internal fun LessonDetails(row: LessonRow, day: LocalDate, onChanged: () -> Unit
             if (row.homework.isEmpty()) Text("Не задано")
             row.homework.forEach { h ->
                 Text(h.description.ifBlank { "Без текста" })
-                AttachmentRow(h.materials)
+                AttachmentList(h)
             }
         }
         Section("Оценка") {

@@ -67,7 +67,16 @@ fun weekFromJson(o: JSONObject): Week {
 class WeekCache(context: Context, private val limit: Int = 60) {
     private val root = File(context.filesDir, "week-cache")
 
-    private fun file(studentId: String, year: UInt, week: UInt) = File(File(root, studentId.filter { it.isLetterOrDigit() || it == '-' || it == '_' }.ifEmpty { "x" }), "$year-$week.json")
+    private fun dirName(studentId: String) = studentId.filter { it.isLetterOrDigit() || it == '-' || it == '_' }.ifEmpty { "x" }
+
+    private fun file(studentId: String, year: UInt, week: UInt) = File(File(root, dirName(studentId)), "$year-$week.json")
+
+    /** Every stored week of the student (the one with the newest data when [studentId] is unknown) and when each was fetched; for the widgets. */
+    fun allFor(studentId: String?): List<Pair<Week, Long>> = runCatching {
+        val dir = studentId?.let { File(root, dirName(it)) }?.takeIf { it.isDirectory }
+            ?: root.listFiles()?.filter { it.isDirectory }?.maxByOrNull { d -> d.listFiles()?.maxOfOrNull { it.lastModified() } ?: 0L }
+        dir?.listFiles()?.filter { it.name.endsWith(".json") }?.mapNotNull { f -> runCatching { weekFromJson(JSONObject(f.readText())) to f.lastModified() }.getOrNull() } ?: emptyList()
+    }.getOrDefault(emptyList())
 
     fun put(studentId: String, w: Week) {
         runCatching {

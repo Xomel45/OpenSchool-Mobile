@@ -86,6 +86,7 @@ class SchoolData(private val source: WeekSource, private val realStudent: Studen
     }
 
     private val cache = WeekCache(context)
+    private val appContext = context.applicationContext
 
     /** Set while some week shown comes from the phone's memory because Gosuslugi could not be reached: when that data was fetched. */
     var offlineSince by mutableStateOf<Long?>(null)
@@ -103,6 +104,7 @@ class SchoolData(private val source: WeekSource, private val realStudent: Studen
     fun setDone(id: String, value: Boolean) {
         done = if (value) done + id else done - id
         prefs.edit().apply { if (value) putBoolean(id, true) else remove(id) }.apply()
+        WidgetUpdater.refreshAsync(appContext)
     }
 
     /** Loads the week the date belongs to (once; a failed load is forgotten so the next call retries). */
@@ -116,7 +118,7 @@ class SchoolData(private val source: WeekSource, private val realStudent: Studen
                 scope.async {
                     try {
                         source.week(student.id, year.toUInt(), week.toUInt()).also {
-                            cache.put(realStudent.id, it); merge(it)
+                            cache.put(realStudent.id, it); merge(it); WidgetUpdater.refreshAsync(appContext)
                             val none = lock.withLock { staleKeys -= key; staleKeys.isEmpty() }
                             if (none) withContext(Dispatchers.Main) { offlineSince = null } // the connection is back
                         }

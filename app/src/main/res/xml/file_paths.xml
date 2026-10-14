@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <paths>
     <!-- downloaded homework attachments, handed to a viewer through a content address (see Attachments.kt) -->
-    <cache-path name="attachments" path="attachments/" />
+    <files-path name="attachments" path="attachments/" />
 </paths>

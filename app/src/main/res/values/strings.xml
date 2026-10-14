@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_schedule_label">Расписание</string>
+    <string name="widget_schedule_description">Уроки на сегодня; после последнего урока ближайший учебный день.</string>
+    <string name="widget_homework_label">Домашнее задание</string>
+    <string name="widget_homework_description">Что ещё не сделано: ближайшие задания.</string>
+</resources>

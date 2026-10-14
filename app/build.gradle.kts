@@ -38,6 +38,7 @@ dependencies {
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.material:material-icons-core")
     implementation("androidx.webkit:webkit:1.14.0") // proxy override for the login window
+    implementation("androidx.glance:glance-appwidget:1.1.1") // the home-screen widgets (schedule, homework)
     implementation("androidx.work:work-runtime-ktx:2.10.5") // the periodic check for new marks and homework
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.json:json:20250517") // the real org.json: the Android one is a stub in unit tests
