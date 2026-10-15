@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.animation.togetherWith
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Edit
@@ -57,7 +58,18 @@ fun AppShell(data: SchoolData, dev: DevStore, ui: UiPrefs, background: Backgroun
     ) { padding ->
         if (search) SearchScreen(data, onClose = { search = false })
         if (feed) FeedSheet(news, onDismiss = { feed = false }, onOpen = { kind -> feed = false; tab = when (kind) { Kind.Mark -> Tab.Marks; Kind.Homework -> Tab.Tasks; Kind.Absence, Kind.Change -> Tab.Schedule } })
-        Box(Modifier.fillMaxSize().padding(padding)) {
+        // A short fade with a small rise between the tabs (Compose follows the system «animation scale»: 0 = no motion).
+        androidx.compose.animation.AnimatedContent(
+            targetState = tab,
+            transitionSpec = {
+                (androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(220, delayMillis = 60)) +
+                    androidx.compose.animation.slideInVertically(androidx.compose.animation.core.tween(260)) { it / 40 }) togetherWith
+                    androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(90))
+            },
+            modifier = Modifier.fillMaxSize().padding(padding),
+            label = "tab",
+        ) { tab ->
+        Box(Modifier.fillMaxSize()) {
             when (tab) {
                 Tab.Home -> HomeScreen(data, news, onBell = { feed = true }, onSearch = { search = true }, onExpired = onExpired)
                 Tab.Marks -> MarksScreen(data, onExpired)
@@ -65,6 +77,7 @@ fun AppShell(data: SchoolData, dev: DevStore, ui: UiPrefs, background: Backgroun
                 Tab.Schedule -> ScheduleScreen(data, onExpired)
                 Tab.Tasks -> TasksScreen(data, onExpired)
             }
+        }
         }
     }
     }

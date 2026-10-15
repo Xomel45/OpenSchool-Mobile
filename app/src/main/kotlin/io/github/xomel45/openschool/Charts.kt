@@ -152,6 +152,9 @@ private fun AverageChart(pts: List<AvgPoint>, start: LocalDate, end: LocalDate) 
     val surface = MaterialTheme.colorScheme.surfaceVariant
     val ink = MaterialTheme.colorScheme.onSurface
     var picked by remember(pts) { mutableStateOf<Int?>(null) }
+    // The line is drawn from left to right when the chart appears (and when another subject is picked).
+    val drawn = remember(pts) { androidx.compose.animation.core.Animatable(0f) }
+    androidx.compose.runtime.LaunchedEffect(pts) { drawn.animateTo(1f, androidx.compose.animation.core.tween(900, easing = androidx.compose.animation.core.FastOutSlowInEasing)) }
     val days = ChronoUnit.DAYS.between(start, end).coerceAtLeast(1).toFloat()
     fun pick(x: Float, w: Float, left: Float) {
         if (pts.isEmpty()) return
@@ -177,8 +180,11 @@ private fun AverageChart(pts: List<AvgPoint>, start: LocalDate, end: LocalDate) 
         if (pts.isEmpty()) return@Canvas
         val path = Path()
         pts.forEachIndexed { i, p -> if (i == 0) path.moveTo(x(p.date), y(p.average)) else path.lineTo(x(p.date), y(p.average)) }
-        drawPath(path, accent, style = Stroke(2.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round))
-        pts.forEach { p -> drawCircle(surface, 5.dp.toPx(), Offset(x(p.date), y(p.average))); drawCircle(accent, 3.5.dp.toPx(), Offset(x(p.date), y(p.average))) }
+        val k = drawn.value
+        val shown = if (k >= 1f) path else Path().also { seg -> androidx.compose.ui.graphics.PathMeasure().apply { setPath(path, false); getSegment(0f, length * k, seg, true) } }
+        drawPath(shown, accent, style = Stroke(2.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round))
+        val head = L + (w - L - R) * k // the dots follow the line
+        pts.forEach { p -> if (x(p.date) <= head + 1f) { drawCircle(surface, 5.dp.toPx(), Offset(x(p.date), y(p.average))); drawCircle(accent, 3.5.dp.toPx(), Offset(x(p.date), y(p.average))) } }
         picked?.let { i ->
             val p = pts[i]
             val px = x(p.date); val py = y(p.average)
@@ -203,6 +209,8 @@ private fun AbsenceChart(months: List<MonthAbsences>) {
     val ink = MaterialTheme.colorScheme.onSurface
     val surface = MaterialTheme.colorScheme.surfaceVariant
     var picked by remember(months) { mutableStateOf<Int?>(null) }
+    val grow = remember(months) { androidx.compose.animation.core.Animatable(0f) }
+    androidx.compose.runtime.LaunchedEffect(months) { grow.animateTo(1f, androidx.compose.animation.core.tween(500, easing = androidx.compose.animation.core.FastOutSlowInEasing)) }
     if (months.isEmpty()) return
     val top = (maxOf(4, months.maxOf { it.count }) + 3) / 4 * 4
     Canvas(Modifier.fillMaxWidth().height(170.dp).pointerInput(months) {
@@ -218,7 +226,7 @@ private fun AbsenceChart(months: List<MonthAbsences>) {
             val cx = L + i * bw + bw / 2
             val bwid = minOf(28.dp.toPx(), bw - 8)
             if (mo.count > 0) {
-                val yy = y(mo.count)
+                val yy = (h - B) - (h - B - y(mo.count)) * grow.value // the bars grow from the baseline
                 drawRoundRect(accent, Offset(cx - bwid / 2, yy), Size(bwid, h - B - yy), CornerRadius(4.dp.toPx()))
                 drawRect(accent, Offset(cx - bwid / 2, yy + 4.dp.toPx()), Size(bwid, (h - B - yy - 4.dp.toPx()).coerceAtLeast(0f))) // square at the baseline
                 label(tm, "${mo.count}", cx, yy - 8.dp.toPx(), TextStyle(fontSize = 10.sp, color = ink, fontWeight = FontWeight.SemiBold), center = true)

@@ -114,7 +114,7 @@ private fun androidx.compose.foundation.lazy.LazyListScope.quarterTable(data: Sc
     if (marks.isNotEmpty()) item { Summary(marks) }
     if (rows.isEmpty()) { item { Note("В этой четверти пока нет уроков.") }; return }
     items(rows, key = { it.name }) { r ->
-        Card(Modifier.fillMaxWidth()) {
+        Card(Modifier.fillMaxWidth().animateItem()) {
             Column(Modifier.padding(12.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(r.name, Modifier.weight(1f), fontWeight = FontWeight.SemiBold)
@@ -183,7 +183,11 @@ private fun Summary(marks: List<uniffi.openschool_bridge.Mark>) {
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(12.dp)) {
             Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
-                Column { Text("Средний балл", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant); Text(mean(nums)?.let(::formatAverage) ?: "–", fontWeight = FontWeight.Bold, fontSize = 20.sp) }
+                val avg = mean(nums)
+                // counts up to the value when the card appears
+                val shown = remember { androidx.compose.animation.core.Animatable(((avg ?: 0.0) - 1.5).coerceAtLeast(0.0).toFloat()) }
+                LaunchedEffect(avg) { if (avg != null) shown.animateTo(avg.toFloat(), androidx.compose.animation.core.tween(600, easing = androidx.compose.animation.core.FastOutSlowInEasing)) }
+                Column { Text("Средний балл", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant); Text(if (avg == null) "–" else if (shown.isRunning) formatAverage(Math.round(shown.value * 100) / 100.0) else formatAverage(avg), fontWeight = FontWeight.Bold, fontSize = 20.sp) }
                 Column { Text("Оценок", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant); Text("${marks.size}", fontWeight = FontWeight.Bold, fontSize = 20.sp) }
             }
             FlowRow(Modifier.padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(14.dp)) {

@@ -7,6 +7,7 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -129,7 +130,7 @@ fun HomeScreen(data: SchoolData, news: NewsStore, onBell: () -> Unit, onSearch: 
             if (state is DayState.Ready && dayData.rows.isEmpty() && dayData.orphanHomework.isEmpty()) item {
                 Text(emptyText(day, data.today), color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            items(dayData.rows, key = { it.lesson.id }) { row -> LessonCard(row, data, onOpen = { selected = row }) }
+            items(dayData.rows, key = { it.lesson.id }) { row -> Box(Modifier.animateItem()) { LessonCard(row, data, onOpen = { selected = row }) } }
             if (data.dev.enabled) item { AddLessonButton(day) }
             if (dayData.orphanHomework.isNotEmpty()) item {
                 Card(Modifier.fillMaxWidth()) {
@@ -169,7 +170,14 @@ private fun StudentCard(data: SchoolData, news: NewsStore, onBell: () -> Unit, o
             }
         }
         androidx.compose.material3.IconButton(onClick = onSearch) { androidx.compose.material3.Icon(Icons.Filled.Search, contentDescription = "Поиск") }
-        androidx.compose.material3.BadgedBox(badge = { if (news.unread > 0) androidx.compose.material3.Badge { Text(if (news.unread > 99) "99+" else "${news.unread}") } }) {
+        // The badge springs when something new arrives.
+        val pop = remember { androidx.compose.animation.core.Animatable(1f) }
+        var lastUnread by remember { mutableStateOf(news.unread) }
+        LaunchedEffect(news.unread) {
+            if (news.unread > lastUnread) { pop.snapTo(0.4f); pop.animateTo(1f, androidx.compose.animation.core.spring(dampingRatio = 0.35f, stiffness = 500f)) }
+            lastUnread = news.unread
+        }
+        androidx.compose.material3.BadgedBox(badge = { if (news.unread > 0) androidx.compose.material3.Badge(Modifier.graphicsLayer { scaleX = pop.value; scaleY = pop.value }) { Text(if (news.unread > 99) "99+" else "${news.unread}") } }) {
             androidx.compose.material3.IconButton(onClick = onBell) { androidx.compose.material3.Icon(Icons.Filled.Notifications, contentDescription = "Что нового") }
         }
     }
@@ -232,10 +240,11 @@ internal fun HomeworkRow(h: Homework, data: SchoolData, prefix: String = "") {
     Column {
     Row(Modifier.fillMaxWidth().clickable { data.setDone(h.id, !done) }.padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
         Checkbox(checked = done, onCheckedChange = { data.setDone(h.id, it) })
+        val ink by androidx.compose.animation.animateColorAsState(if (done) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface, androidx.compose.animation.core.tween(250), label = "hw")
         Text(
             prefix + h.description.ifBlank { "Без текста" },
             Modifier.weight(1f), fontSize = 14.sp, maxLines = 4, overflow = TextOverflow.Ellipsis,
-            color = if (done) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
+            color = ink,
             textDecoration = if (done) androidx.compose.ui.text.style.TextDecoration.LineThrough else null,
         )
         HomeworkPencil(h)
