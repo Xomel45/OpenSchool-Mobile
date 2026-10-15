@@ -50,9 +50,11 @@ class NewsWorker(private val context: Context, params: WorkerParameters) : Corou
             val cache = WeekCache(context)
             weeks.forEach { cache.put(student.id, it) }
             WidgetUpdater.refresh(context)
-            if (!news.settings.marks && !news.settings.homework && !news.settings.absences) return@withContext done(0, null)
+            if (news.settings.nowInShade) NowWorker.schedule(context, news.settings) // fresh lessons: the shade notification follows them
+            if (!news.settings.anyNews) return@withContext done(0, null)
             val events = weeks.flatMap { eventsOf(it) }
-            val fresh = news.absorb(student.id, events)
+            val lessons = snapshotOf(weeks, today.toString(), today.plusDays(7).toString())
+            val fresh = news.absorb(student.id, events, lessons, today.toString())
             if (fresh.isNotEmpty()) notifyAbout(context, fresh, news.settings.detail)
             done(fresh.size, null)
         } catch (e: BridgeException.Auth) {
@@ -73,7 +75,7 @@ class NewsWorker(private val context: Context, params: WorkerParameters) : Corou
         fun schedule(context: Context, settings: NewsSettings) {
             val wm = WorkManager.getInstance(context)
             // Notifications are off: the check still runs while a widget is on the screen (it keeps the widget's data fresh).
-            if (!settings.marks && !settings.homework && !settings.absences && !WidgetUpdater.anyWidget(context)) { wm.cancelUniqueWork(UNIQUE); return }
+            if (!settings.anyNews && !WidgetUpdater.anyWidget(context)) { wm.cancelUniqueWork(UNIQUE); return }
             val request = PeriodicWorkRequestBuilder<NewsWorker>(settings.intervalMin.toLong(), TimeUnit.MINUTES)
                 .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
                 .build()

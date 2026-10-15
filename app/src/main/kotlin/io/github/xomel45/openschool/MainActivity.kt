@@ -57,6 +57,7 @@ private fun Root(ui: UiPrefs, background: BackgroundPrefs, demo: Boolean, offlin
             Text("Войдите через Госуслуги. Пароль вводится в окне Госуслуг, приложение его не видит.", Modifier.padding(top = 12.dp), textAlign = TextAlign.Center)
             Button(onClick = model::openWeb, modifier = Modifier.padding(top = 24.dp)) { Text("Войти через Госуслуги") }
             if (s.message != null) Text(s.message, Modifier.padding(top = 16.dp), color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
+            OldWebViewNotice()
         }
         Screen.Web -> {
             BackHandler(onBack = model::closeWeb) // back leaves the Gosuslugi window for the first screen instead of closing the app

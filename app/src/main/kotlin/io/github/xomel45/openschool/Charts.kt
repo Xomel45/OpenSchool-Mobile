@@ -1,6 +1,7 @@
 package io.github.xomel45.openschool
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -69,6 +70,16 @@ fun absencesByMonth(lessons: Collection<Lesson>, start: LocalDate, end: LocalDat
     }
 }
 
+/** An absent lesson with the homework given that day for its subject. */
+data class Missed(val lesson: Lesson, val date: LocalDate, val homework: List<uniffi.openschool_bridge.Homework>)
+
+/** «Что я пропустил»: absent lessons of [start]..[end], newest first. Pure: JVM-tested. */
+fun missedLessons(lessons: Collection<Lesson>, homework: Collection<uniffi.openschool_bridge.Homework>, start: LocalDate, end: LocalDate): List<Missed> =
+    lessons.filter { it.absence != null }.mapNotNull { l ->
+        val d = runCatching { LocalDate.parse(l.start.take(10)) }.getOrNull()?.takeIf { it in start..end } ?: return@mapNotNull null
+        Missed(l, d, homework.filter { h -> h.issueDate.take(10) == d.toString() && (if (h.subjectId != null) h.subjectId == l.subjectId else h.subjectName == l.subjectName) })
+    }.sortedByDescending { it.lesson.start }
+
 private val MONTH_NOM = listOf("Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь")
 private val MONTH_SHORT = listOf("янв", "фев", "мар", "апр", "май", "июн", "июл", "авг", "сен", "окт", "ноя", "дек")
 
@@ -78,6 +89,7 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.label(tm: TextMeasu
     drawText(r, topLeft = Offset(x - dx, y - r.size.height / 2f))
 }
 
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 fun ChartsSection(data: SchoolData, start: LocalDate, end: LocalDate) {
     @Suppress("UNUSED_EXPRESSION") data.revision
@@ -106,6 +118,27 @@ fun ChartsSection(data: SchoolData, start: LocalDate, end: LocalDate) {
                 val total = months.sumOf { it.count }
                 Text(if (total > 0) "Всего пропусков за год: $total. Нажмите на столбец, чтобы увидеть предметы." else "Пропусков нет.", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
+        }
+        val missed = missedLessons(data.allLessons(), data.allHomework(), start, minOf(end, data.today))
+        var open by remember { mutableStateOf<Missed?>(null) }
+        Card(Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Что я пропустил", fontWeight = FontWeight.SemiBold)
+                if (missed.isEmpty()) Text("Пропусков нет.", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                missed.forEach { m ->
+                    Column(Modifier.fillMaxWidth().clickable { open = m }.padding(vertical = 4.dp)) {
+                        Text(m.lesson.subjectName, fontWeight = FontWeight.SemiBold)
+                        Text("${m.date.dayOfMonth} ${MONTHS[m.date.monthValue - 1]}, ${hm(m.lesson.start)}" + (m.lesson.absence?.description?.takeIf { it.isNotBlank() }?.let { " · $it" } ?: ""), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("Тема: ${m.lesson.theme?.takeIf { it.isNotBlank() } ?: "не указана"}", fontSize = 13.sp)
+                        m.homework.forEach { h -> Text("Задали: ${h.description.ifBlank { "без текста" }} (на ${shortDate(h.dueDate)})", fontSize = 13.sp) }
+                    }
+                }
+            }
+        }
+        open?.let { m ->
+            val row = data.buildDay(m.date).rows.firstOrNull { it.lesson.id == m.lesson.id }
+            if (row == null) open = null
+            else androidx.compose.material3.ModalBottomSheet(onDismissRequest = { open = null }) { LessonDetails(row, m.date, onChanged = { open = null }) }
         }
     }
 }

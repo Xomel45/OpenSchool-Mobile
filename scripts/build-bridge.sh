@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Builds the Rust Bridge for Android and generates its Kotlin bindings into this app.
-# Needs: rustup targets aarch64-linux-android and x86_64-linux-android, cargo-ndk, an Android NDK.
+# Needs: rustup targets aarch64-linux-android, armv7-linux-androideabi and x86_64-linux-android, cargo-ndk, an Android NDK.
+# armeabi-v7a: phones with a 32-bit Android on a 64-bit CPU (Redmi 9A and many other cheap phones with 2 GB of memory).
 # The NDK: the first non-empty of ANDROID_NDK_HOME, ANDROID_NDK_LATEST_HOME, ANDROID_NDK_ROOT (GitHub runners set this one),
 # else the newest in $ANDROID_HOME/ndk/ or ~/Android/Sdk/ndk/.
 set -euo pipefail
@@ -16,9 +17,12 @@ echo "NDK: $ANDROID_NDK_HOME"
 # 16 KB pages (Android 15+ devices, required by Google Play): NDK r28+ aligns this way by default, r27 (GitHub runners) does not.
 export CARGO_TARGET_AARCH64_LINUX_ANDROID_RUSTFLAGS="-C link-arg=-Wl,-z,max-page-size=16384"
 export CARGO_TARGET_X86_64_LINUX_ANDROID_RUSTFLAGS="-C link-arg=-Wl,-z,max-page-size=16384"
+export CARGO_TARGET_ARMV7_LINUX_ANDROIDEABI_RUSTFLAGS="-C link-arg=-Wl,-z,max-page-size=16384"
+export CARGO_TARGET_I686_LINUX_ANDROID_RUSTFLAGS="-C link-arg=-Wl,-z,max-page-size=16384"
 cd "$bridge"
 rm -rf "$here/app/src/main/jniLibs" "$here/app/src/main/kotlin-gen"
-cargo ndk -t arm64-v8a -t x86_64 -P 26 -o "$here/app/src/main/jniLibs" build --release
+# OPENSCHOOL_X86=1 adds 32-bit x86 (only for testing on a 32-bit emulator image; phones do not need it).
+cargo ndk -t arm64-v8a -t armeabi-v7a -t x86_64 ${OPENSCHOOL_X86:+-t x86} -P 26 -o "$here/app/src/main/jniLibs" build --release
 # The bindings are read from a host build: the stripped Android libraries carry no UniFFI metadata.
 cargo build
 cargo run -q --features cli --bin uniffi-bindgen generate --library target/debug/libopenschool_bridge.so \

@@ -50,13 +50,14 @@ fun NotificationSettings(news: NewsStore) {
         EveningWorker.schedule(context, new)
         NowWorker.schedule(context, new)
         // Android 13+ asks before the first notification.
-        if (Build.VERSION.SDK_INT >= 33 && (new.marks || new.homework || new.absences || new.evening || new.testReminders || new.nowInShade)) permission.launch(Manifest.permission.POST_NOTIFICATIONS)
+        if (Build.VERSION.SDK_INT >= 33 && (new.anyNews || new.evening || new.testReminders || new.nowInShade)) permission.launch(Manifest.permission.POST_NOTIFICATIONS)
     }
 
     Column {
         SwitchRow("Новые оценки", s.marks) { change(s.copy(marks = it)) }
         SwitchRow("Новые домашние задания", s.homework) { change(s.copy(homework = it)) }
         SwitchRow("Отметки о пропусках", s.absences) { change(s.copy(absences = it)) }
+        SwitchRow("Замены и изменения в расписании", s.changes) { change(s.copy(changes = it)) }
         Text("Как часто проверять", Modifier.padding(top = 10.dp), fontSize = 14.sp)
         FlowRow(Modifier.padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             NEWS_INTERVALS.forEach { m -> FilterChip(s.intervalMin == m, { change(s.copy(intervalMin = m)) }, label = { Text(if (m == 60) "1 час" else "$m мин") }) }

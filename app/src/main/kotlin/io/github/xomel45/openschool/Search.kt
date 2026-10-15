@@ -45,12 +45,18 @@ data class Found(val kind: String, val date: String, val lessonId: String?, val 
 
 fun normSearch(s: String) = s.lowercase().replace('ё', 'е')
 
-/** Every word must be in the subject, the text or the kind; newest first. Pure: tested on the JVM. */
-fun searchIn(items: List<Found>, query: String): List<Found> {
-    val words = normSearch(query).split(Regex("\\s+")).filter { it.isNotBlank() }
-    if (words.isEmpty()) return emptyList()
-    return items.filter { f -> val hay = normSearch("${f.title} ${f.text} ${f.kind}"); words.all { it in hay } }.sortedByDescending { it.date }
+/** The items with their text already normalised and sorted newest first: built once, filtered on every key. */
+class SearchIndex(items: List<Found>) {
+    private val entries = items.sortedByDescending { it.date }.map { it to normSearch("${it.title} ${it.text} ${it.kind}") }
+    fun find(query: String): List<Found> {
+        val words = normSearch(query).split(Regex("\\s+")).filter { it.isNotBlank() }
+        if (words.isEmpty()) return emptyList()
+        return entries.filter { (_, hay) -> words.all { it in hay } }.map { it.first }
+    }
 }
+
+/** Every word must be in the subject, the text or the kind; newest first. Pure: tested on the JVM. */
+fun searchIn(items: List<Found>, query: String): List<Found> = SearchIndex(items).find(query)
 
 fun searchItems(data: SchoolData): List<Found> {
     val out = mutableListOf<Found>()
@@ -100,7 +106,8 @@ fun SearchScreen(data: SchoolData, onClose: () -> Unit) {
     }
     @Suppress("UNUSED_EXPRESSION") data.revision
     val words = normSearch(q).split(Regex("\\s+")).filter { it.isNotBlank() }
-    val results = remember(q, data.revision, data.notes.all) { searchIn(searchItems(data), q) }
+    val index = remember(data.revision, data.notes.all) { SearchIndex(searchItems(data)) }
+    val results = remember(q, index) { index.find(q) }
     Dialog(onDismissRequest = onClose, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
             Column(Modifier.fillMaxSize().padding(12.dp)) {

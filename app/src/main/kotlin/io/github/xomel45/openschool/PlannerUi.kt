@@ -139,8 +139,8 @@ fun upcomingTests(data: SchoolData, days: Int = 14): List<Pair<LocalDate, Lesson
 @Composable
 fun UpcomingTestsCard(data: SchoolData, onOpen: (LessonRow, LocalDate) -> Unit) {
     LaunchedEffect(Unit) { for (i in 1..2) try { data.loadWeek(data.today.plusWeeks(i.toLong())) } catch (_: LoadFailure) { } }
-    @Suppress("UNUSED_EXPRESSION") data.revision
-    val list = upcomingTests(data)
+    // Counted again only when the data or the notes change, not on every redraw of the home page (slow phones).
+    val list = remember(data.revision, data.notes.all) { upcomingTests(data) }
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Text("Скоро контрольные", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         if (list.isEmpty()) Text("В ближайшие две недели не найдено. Контрольные узнаются по теме урока и тексту задания.", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)

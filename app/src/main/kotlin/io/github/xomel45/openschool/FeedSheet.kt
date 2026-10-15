@@ -47,7 +47,7 @@ fun FeedSheet(news: NewsStore, onDismiss: () -> Unit, onOpen: (Kind) -> Unit) {
                         Modifier.fillMaxWidth().clickable { news.markRead(setOf(item.id)); onOpen(item.kind) }.padding(horizontal = 20.dp, vertical = 10.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        if (item.kind == Kind.Mark && item.value != null) MarkChip(item.value, 36) else Text(if (item.kind == Kind.Homework) "📝" else "⚠", fontSize = 22.sp, modifier = Modifier.padding(end = 4.dp))
+                        if (item.kind == Kind.Mark && item.value != null) MarkChip(item.value, 36) else Text(when (item.kind) { Kind.Homework -> "📝"; Kind.Change -> "⇄"; else -> "⚠" }, fontSize = 22.sp, modifier = Modifier.padding(end = 4.dp))
                         Column(Modifier.weight(1f).padding(start = 12.dp)) {
                             Text(item.title, fontWeight = if (item.read) FontWeight.Normal else FontWeight.Bold)
                             Text(item.text, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)

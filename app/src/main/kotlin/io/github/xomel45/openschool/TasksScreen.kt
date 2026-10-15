@@ -153,10 +153,17 @@ private fun TaskDay(d: LocalDate, day: DayData, data: SchoolData, onOpen: (Lesso
     val word = when (ChronoUnit.DAYS.between(data.today, d).toInt()) { 0 -> " · сегодня"; 1 -> " · завтра"; -1 -> " · вчера"; else -> "" }
     val wd = d.dayOfWeek.getDisplayName(TextStyle.FULL, RU).replaceFirstChar { it.uppercase() }
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Text(
-            "$wd, ${d.dayOfMonth} ${MONTHS[d.monthValue - 1]}$word", fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 6.dp),
-            color = if (d == data.today) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
-        )
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 6.dp)) {
+            Text(
+                "$wd, ${d.dayOfMonth} ${MONTHS[d.monthValue - 1]}$word", fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f),
+                color = if (d == data.today) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+            )
+            val context = androidx.compose.ui.platform.LocalContext.current
+            if (any) androidx.compose.material3.TextButton({
+                val text = homeworkShareText(d, day)
+                if (text.isNotEmpty()) context.startActivity(android.content.Intent.createChooser(android.content.Intent(android.content.Intent.ACTION_SEND).setType("text/plain").putExtra(android.content.Intent.EXTRA_TEXT, text), "Задания на день"))
+            }) { Text("Поделиться", fontSize = 13.sp) }
+        }
         cards.forEach { row ->
             val visible = if (onlyOpen) row.copy(homework = row.homework.filter { !data.isDone(it.id) }) else row
             LessonCard(visible, data, onOpen = { onOpen(row) })

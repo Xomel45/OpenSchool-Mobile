@@ -56,7 +56,7 @@ fun AppShell(data: SchoolData, dev: DevStore, ui: UiPrefs, background: Backgroun
         },
     ) { padding ->
         if (search) SearchScreen(data, onClose = { search = false })
-        if (feed) FeedSheet(news, onDismiss = { feed = false }, onOpen = { kind -> feed = false; tab = when (kind) { Kind.Mark -> Tab.Marks; Kind.Homework -> Tab.Tasks; Kind.Absence -> Tab.Schedule } })
+        if (feed) FeedSheet(news, onDismiss = { feed = false }, onOpen = { kind -> feed = false; tab = when (kind) { Kind.Mark -> Tab.Marks; Kind.Homework -> Tab.Tasks; Kind.Absence, Kind.Change -> Tab.Schedule } })
         Box(Modifier.fillMaxSize().padding(padding)) {
             when (tab) {
                 Tab.Home -> HomeScreen(data, news, onBell = { feed = true }, onSearch = { search = true }, onExpired = onExpired)

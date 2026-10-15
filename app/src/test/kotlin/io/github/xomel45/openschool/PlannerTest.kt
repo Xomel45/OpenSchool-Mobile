@@ -119,4 +119,46 @@ class PlannerTest {
         assertEquals(listOf(1, 0, 2), m.map { it.count })
         assertEquals(mapOf("Химия" to 1, "Физика" to 1), m[2].subjects)
     }
+
+    @Test fun theWebViewVersionIsReadAsItsMajorNumber() {
+        assertEquals(74, webViewMajor("74.0.3729.185"))
+        assertEquals(141, webViewMajor("141.0.7390.122"))
+        assertNull(webViewMajor(null))
+        assertNull(webViewMajor("unknown"))
+        assertTrue(webViewMajor("74.0.3729.185")!! < MIN_WEBVIEW_MAJOR)
+    }
+
+    @Test fun theDaysHomeworkIsSharedAsOneNumberedText() {
+        val l1 = lesson("L1", "Алгебра", "2026-10-15 08:30:00")
+        val h1 = hw("H1", "Алгебра", "2026-10-15", "L1", "§5,\n  №1–3").copy(materials = listOf(uniffi.openschool_bridge.Material("схема.pdf", "https://x")))
+        val orphan = hw("H2", "", "2026-10-15", "", "принести форму")
+        val day = DayData(listOf(LessonRow(1, l1, listOf(h1), emptyList())), listOf(orphan))
+        assertEquals("Задания на четверг, 15 октября:\n1. Алгебра: §5, №1–3 (файлы: схема.pdf)\n2. Без предмета: принести форму", homeworkShareText(d("2026-10-15"), day))
+        assertEquals("", homeworkShareText(d("2026-10-15"), DayData(emptyList(), emptyList())))
+    }
+
+    @Test fun missedLessonsCarryTheirTopicAndTheHomeworkOfThatDay() {
+        val a = uniffi.openschool_bridge.Absence("Н", "")
+        val ls = listOf(lesson("1", "Химия", "2026-10-10 08:30:00", theme = "Оксиды").copy(absence = a), lesson("2", "Химия", "2026-10-12 08:30:00").copy(absence = a), lesson("3", "Физика", "2026-10-12 09:25:00"))
+        val hws = listOf(hw("H1", "Химия", "2026-10-14", "x", "§12").copy(issueDate = "2026-10-10"), hw("H2", "Физика", "2026-10-14", "x", "№5").copy(issueDate = "2026-10-10"))
+        val m = missedLessons(ls, hws, d("2026-09-01"), d("2026-10-31"))
+        assertEquals(listOf("2", "1"), m.map { it.lesson.id })
+        assertEquals(listOf("H1"), m[1].homework.map { it.id })
+        assertTrue(m[0].homework.isEmpty())
+    }
+
+    @Test fun theNextBandNeedsTheFewestFives() {
+        assertEquals(5 to 4, nextBand(listOf(4.0, 4.0, 4.0, 4.0)))
+        assertEquals(5 to 3, nextBand(listOf(3.0, 4.0, 5.0)))
+        assertEquals(3 to 1, nextBand(listOf(2.0, 2.0)))
+        assertNull(nextBand(listOf(4.0, 5.0)))
+        assertNull(nextBand(emptyList()))
+        for (a in listOf(listOf(4.0, 4.0, 4.0, 4.0), listOf(2.0, 3.0, 3.0, 4.0, 4.0, 4.0, 5.0), listOf(2.0, 2.0))) {
+            val (g, k) = nextBand(a)!!
+            val t = mapOf(3 to 2.6, 4 to 3.5, 5 to 4.5)[g]!!
+            fun mean(k: Int) = (a.sum() + 5 * k) / (a.size + k)
+            assertTrue(mean(k) >= t && (k == 1 || mean(k - 1) < t))
+        }
+        assertEquals(listOf("пятёрка", "пятёрки", "пятёрок", "пятёрок"), listOf(1, 3, 5, 11).map(::fivesWord))
+    }
 }

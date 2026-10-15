@@ -2,7 +2,7 @@ package io.github.xomel45.openschool
 
 import uniffi.openschool_bridge.Week
 
-enum class Kind { Mark, Homework, Absence }
+enum class Kind { Mark, Homework, Absence, Change }
 
 /** Something new found in a week. */
 data class NewsEvent(
@@ -65,6 +65,7 @@ fun notificationText(items: List<NewsEvent>, detail: Boolean): Pair<String, Stri
             Kind.Mark -> "Новая оценка" to e.value?.let { "${e.subject} — $it" }
             Kind.Homework -> "Новое задание" to e.subject
             Kind.Absence -> "Отметка о пропуске" to e.subject
+            Kind.Change -> "Изменение в расписании" to e.subject
         }
         return if (detail && name != null) "$title: $name" to e.detail else title to hidden
     }
@@ -74,6 +75,7 @@ fun notificationText(items: List<NewsEvent>, detail: Boolean): Pair<String, Stri
         Kind.Mark -> plural(n, "новая оценка", "новые оценки", "новых оценок")
         Kind.Homework -> plural(n, "новое задание", "новых задания", "новых заданий")
         Kind.Absence -> plural(n, "отметка о пропуске", "отметки о пропусках", "отметок о пропусках")
+        Kind.Change -> plural(n, "изменение в расписании", "изменения в расписании", "изменений в расписании")
     }
     if (!detail) return title to hidden
     val short = items.take(3).map { e -> e.value?.let { "${e.subject} $it" } ?: e.subject }

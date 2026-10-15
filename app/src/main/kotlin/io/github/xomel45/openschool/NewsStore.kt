@@ -16,6 +16,8 @@ data class NewsSettings(
     val marks: Boolean = true,
     val homework: Boolean = true,
     val absences: Boolean = false,
+    /** «Замены»: a lesson of the coming days was replaced, cancelled, added, moved or got another room. */
+    val changes: Boolean = true,
     val intervalMin: Int = 15,
     /** Show the subject and the mark in the notification, not just "new mark". */
     val detail: Boolean = true,
@@ -30,7 +32,9 @@ data class NewsSettings(
     /** «Текущий урок в шторке»: a silent notification with a countdown to the next bell (NowWorker). */
     val nowInShade: Boolean = false,
 ) {
-    fun wants(kind: Kind) = when (kind) { Kind.Mark -> marks; Kind.Homework -> homework; Kind.Absence -> absences }
+    fun wants(kind: Kind) = when (kind) { Kind.Mark -> marks; Kind.Homework -> homework; Kind.Absence -> absences; Kind.Change -> changes }
+    /** Anything the periodic check announces. */
+    val anyNews: Boolean get() = marks || homework || absences || changes
 
     /** Is [minute] (minutes since local midnight) inside the quiet hours? The start is quiet, the end is not; a span may run over
      *  midnight (22:00-07:00); equal times mean "no quiet hours". */
@@ -53,6 +57,7 @@ class NewsStore(context: Context) {
             marks = prefs.getBoolean("marks", true),
             homework = prefs.getBoolean("homework", true),
             absences = prefs.getBoolean("absences", false),
+            changes = prefs.getBoolean("changes", true),
             intervalMin = prefs.getInt("interval", 15).takeIf { it in NEWS_INTERVALS } ?: 15,
             detail = prefs.getBoolean("detail", true),
             quiet = prefs.getBoolean("quiet", false),
@@ -68,7 +73,7 @@ class NewsStore(context: Context) {
 
     fun update(s: NewsSettings) {
         settings = s
-        prefs.edit().putBoolean("marks", s.marks).putBoolean("homework", s.homework).putBoolean("absences", s.absences)
+        prefs.edit().putBoolean("marks", s.marks).putBoolean("homework", s.homework).putBoolean("absences", s.absences).putBoolean("changes", s.changes)
             .putInt("interval", s.intervalMin).putBoolean("detail", s.detail)
             .putBoolean("quiet", s.quiet).putInt("quietFrom", s.quietFrom).putInt("quietTo", s.quietTo)
             .putBoolean("evening", s.evening).putInt("eveningAt", s.eveningAt).putBoolean("testReminders", s.testReminders).putBoolean("nowInShade", s.nowInShade).apply()
@@ -115,11 +120,18 @@ class NewsStore(context: Context) {
      * as seen, even kinds that are switched off: turning one on later must not flood.
      */
     @Synchronized
-    fun absorb(account: String, found: List<NewsEvent>): List<NewsEvent> {
+    fun absorb(account: String, found: List<NewsEvent>, lessons: Snapshot? = null, today: String = ""): List<NewsEvent> {
         val first = prefs.getString("account", null) != account || !prefs.getBoolean("initialized", false)
+        val all = found.toMutableList()
+        if (lessons != null) {
+            val old = if (first) emptyMap() else snapshotFromJson(prefs.getString("lessons", null))
+            if (old.isNotEmpty()) all += scheduleChanges(old, lessons, today)
+            // An empty answer must not wipe what is known: the next real one would be compared with nothing.
+            if (lessons.isNotEmpty()) prefs.edit().putString("lessons", snapshotToJson(lessons)).apply()
+        }
         val seen = if (first) HashSet() else HashSet(prefs.getStringSet("seen", emptySet()) ?: emptySet())
         val batch = HashSet<String>()
-        val new = found.filter { it.key !in seen && batch.add(it.key) }
+        val new = all.filter { it.key !in seen && batch.add(it.key) }
         seen += new.map { it.key }
         prefs.edit().putString("account", account).putBoolean("initialized", true).putStringSet("seen", seen).apply()
         val wanted = if (first) emptyList() else new.filter { settings.wants(it.kind) }
@@ -134,7 +146,7 @@ class NewsStore(context: Context) {
     /** Logout: the seen ids and the flag belong to the account. */
     @Synchronized
     fun reset() {
-        prefs.edit().remove("account").remove("initialized").remove("seen").remove("expired").remove("feed").apply()
+        prefs.edit().remove("account").remove("initialized").remove("seen").remove("expired").remove("feed").remove("lessons").apply()
         feed = emptyList()
     }
 }

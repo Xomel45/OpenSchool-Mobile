@@ -58,9 +58,16 @@ class BackgroundPrefs(private val context: Context) {
         runCatching {
             val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
             BitmapFactory.decodeFile(f.path, bounds)
+            // Not bigger than the screen needs (a 12 MP photo would take ~48 MB); on phones with little memory 2 bytes a pixel.
+            val dm = context.resources.displayMetrics
+            val limit = maxOf(dm.widthPixels, dm.heightPixels).coerceIn(1024, 2048)
             var sample = 1
-            while (bounds.outWidth / sample > 2048 || bounds.outHeight / sample > 2048) sample *= 2
-            BitmapFactory.decodeFile(f.path, BitmapFactory.Options().apply { inSampleSize = sample })?.asImageBitmap()
+            while (bounds.outWidth / sample > limit || bounds.outHeight / sample > limit) sample *= 2
+            val lowRam = (context.getSystemService(android.content.Context.ACTIVITY_SERVICE) as android.app.ActivityManager).let { it.isLowRamDevice || it.memoryClass <= 192 }
+            BitmapFactory.decodeFile(f.path, BitmapFactory.Options().apply {
+                inSampleSize = sample
+                if (lowRam) inPreferredConfig = android.graphics.Bitmap.Config.RGB_565
+            })?.asImageBitmap()
         }.getOrNull()
     }
 

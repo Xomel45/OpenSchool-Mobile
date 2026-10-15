@@ -16,6 +16,7 @@ private val IMAGE_EXT = setOf("png", "jpg", "jpeg", "webp", "gif", "avif")
 data class NotificationsPatch(
     val marks: Boolean?, val homework: Boolean?, val absences: Boolean?, val detail: Boolean?, val intervalMin: Int?,
     val quiet: Boolean? = null, val quietFrom: Int? = null, val quietTo: Int? = null,
+    val changes: Boolean? = null, val evening: Boolean? = null, val eveningAt: Int? = null, val testReminders: Boolean? = null,
 )
 
 /** What was read from a settings file: the checked values and the picture, if the file had one. */
@@ -46,7 +47,9 @@ object SettingsFile {
         .put("icon", icon.id)
         .put("bg", bg.toJson())
         .put("notifications", JSONObject().put("marks", notifications.marks).put("homework", notifications.homework).put("absences", notifications.absences).put("interval_min", notifications.intervalMin).put("detail", notifications.detail)
-            .put("quiet", JSONObject().put("on", notifications.quiet).put("from", minutesToHm(notifications.quietFrom)).put("to", minutesToHm(notifications.quietTo))))
+            .put("quiet", JSONObject().put("on", notifications.quiet).put("from", minutesToHm(notifications.quietFrom)).put("to", minutesToHm(notifications.quietTo)))
+            .put("changes", notifications.changes)
+            .put("evening", JSONObject().put("on", notifications.evening).put("at", minutesToHm(notifications.eveningAt)).put("tests", notifications.testReminders)))
         .put("network", JSONObject().put("mode", network.name.lowercase()))
 
     fun archive(config: JSONObject, picture: ByteArray?): ByteArray {
@@ -91,10 +94,12 @@ object SettingsFile {
         val notifications = o.optJSONObject("notifications")?.let { n ->
             val interval = (if (n.has("interval_min")) n.opt("interval_min") else null).let { v -> (v as? Number)?.toInt()?.takeIf { it in FILE_INTERVALS && v.toDouble() == it.toDouble() } }
             val q = n.optJSONObject("quiet")
+            val ev = n.optJSONObject("evening")
             NotificationsPatch(
                 bool(n, "marks"), bool(n, "homework"), bool(n, "absences"), bool(n, "detail"), interval?.let(::clampInterval),
                 quiet = q?.let { bool(it, "on") }, quietFrom = q?.let { parseHm(it.opt("from") as? String) }, quietTo = q?.let { parseHm(it.opt("to") as? String) },
-            ).takeIf { it.marks != null || it.homework != null || it.absences != null || it.detail != null || it.intervalMin != null || it.quiet != null || it.quietFrom != null || it.quietTo != null }
+                changes = bool(n, "changes"), evening = ev?.let { bool(it, "on") }, eveningAt = ev?.let { parseHm(it.opt("at") as? String) }, testReminders = ev?.let { bool(it, "tests") },
+            ).takeIf { it != NotificationsPatch(null, null, null, null, null) }
         }
         return ImportedSettings(
             style = StylePref.entries.firstOrNull { it.name.equals(o.optString("style"), true) },
@@ -126,7 +131,8 @@ object SettingsFile {
         }
         s.notifications?.let { p ->
             val cur = news.settings
-            news.update(cur.copy(marks = p.marks ?: cur.marks, homework = p.homework ?: cur.homework, absences = p.absences ?: cur.absences, detail = p.detail ?: cur.detail, intervalMin = p.intervalMin ?: cur.intervalMin, quiet = p.quiet ?: cur.quiet, quietFrom = p.quietFrom ?: cur.quietFrom, quietTo = p.quietTo ?: cur.quietTo))
+            news.update(cur.copy(marks = p.marks ?: cur.marks, homework = p.homework ?: cur.homework, absences = p.absences ?: cur.absences, detail = p.detail ?: cur.detail, intervalMin = p.intervalMin ?: cur.intervalMin, quiet = p.quiet ?: cur.quiet, quietFrom = p.quietFrom ?: cur.quietFrom, quietTo = p.quietTo ?: cur.quietTo,
+                changes = p.changes ?: cur.changes, evening = p.evening ?: cur.evening, eveningAt = p.eveningAt ?: cur.eveningAt, testReminders = p.testReminders ?: cur.testReminders))
         }
         s.network?.let(net::choose)
         return problem

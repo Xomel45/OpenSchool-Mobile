@@ -16,9 +16,25 @@ android {
         versionName = "0.1.0"
     }
 
+    // A real release key, when given (CI secrets or a local keystore): every build then updates the same installed app.
+    // Without it the release build is signed with the debug key of the machine that built it.
+    val keystore = System.getenv("OPENSCHOOL_KEYSTORE")?.let { file(it) }?.takeIf { it.isFile }
+    signingConfigs {
+        if (keystore != null) create("release") {
+            storeFile = keystore
+            storePassword = System.getenv("OPENSCHOOL_KEYSTORE_PASSWORD")
+            keyAlias = System.getenv("OPENSCHOOL_KEY_ALIAS")
+            keyPassword = System.getenv("OPENSCHOOL_KEY_PASSWORD") ?: System.getenv("OPENSCHOOL_KEYSTORE_PASSWORD")
+        }
+    }
+
     buildTypes {
         release {
-            isMinifyEnabled = false
+            // R8 + resource shrinking: a smaller, much faster app (Compose in a debug build is slow on cheap phones like a Redmi 9A).
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            signingConfig = signingConfigs.findByName("release") ?: signingConfigs.getByName("debug")
         }
     }
     compileOptions {
@@ -49,4 +65,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
     implementation("com.google.android.gms:play-services-auth-api-phone:18.3.1") // SMS User Consent: the code from the SMS without the READ_SMS permission
     implementation("net.java.dev.jna:jna:5.17.0@aar") // UniFFI's bindings call the Rust library through JNA
+    // Installs the baseline profiles (Compose ships them) also when the APK is installed by hand, not from a store: the hot code is
+    // compiled ahead, so start and scrolling are smoother on slow phones.
+    implementation("androidx.profileinstaller:profileinstaller:1.4.1")
 }

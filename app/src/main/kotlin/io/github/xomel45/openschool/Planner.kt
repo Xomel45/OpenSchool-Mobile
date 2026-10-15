@@ -178,3 +178,18 @@ fun buildIcs(events: List<IcsEvent>, nowUtc: String): String = buildString {
     }
     fold("END:VCALENDAR")
 }
+
+// ---------- «Поделиться заданиями» ----------
+
+private val WEEKDAYS_ACC = listOf("понедельник", "вторник", "среду", "четверг", "пятницу", "субботу", "воскресенье")
+
+/** «Задания на четверг, 16 октября:» + one numbered line per homework (subject: text, files); empty when there is none. */
+fun homeworkShareText(date: LocalDate, day: DayData): String {
+    val lines = day.rows.flatMap { r -> r.homework.map { r.lesson.subjectName to it } } + day.orphanHomework.map { it.subjectName.ifBlank { "Без предмета" } to it }
+    if (lines.isEmpty()) return ""
+    val head = "Задания на ${WEEKDAYS_ACC[date.dayOfWeek.value - 1]}, ${date.dayOfMonth} ${MONTHS[date.monthValue - 1]}:"
+    return (listOf(head) + lines.mapIndexed { i, (s, h) ->
+        val files = h.materials.map { it.name.ifBlank { "файл" } }
+        "${i + 1}. $s: ${h.description.ifBlank { "без текста" }.split(Regex("\\s+")).filter { it.isNotEmpty() }.joinToString(" ")}" + if (files.isNotEmpty()) " (файлы: ${files.joinToString(", ")})" else ""
+    }).joinToString("\n")
+}

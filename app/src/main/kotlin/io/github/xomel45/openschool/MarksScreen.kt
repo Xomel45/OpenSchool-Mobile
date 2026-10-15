@@ -120,6 +120,10 @@ private fun androidx.compose.foundation.lazy.LazyListScope.quarterTable(data: Sc
                     Text(r.name, Modifier.weight(1f), fontWeight = FontWeight.SemiBold)
                     AverageChip(r.average)
                 }
+                // «до 5: 2 пятёрки»: shown only when it is within reach
+                nextBand(r.marks.mapNotNull { toNumber(it.value) })?.takeIf { it.second <= 8 }?.let { (g, k) ->
+                    Text("до $g: $k ${fivesWord(k)}", Modifier.fillMaxWidth().padding(top = 2.dp), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = androidx.compose.ui.text.style.TextAlign.End)
+                }
                 if (r.marks.isEmpty()) Text("Оценок нет", Modifier.padding(top = 6.dp), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 else FlowRow(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     r.marks.forEach { MarkChip(it.value, 32) }

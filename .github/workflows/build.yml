@@ -29,7 +29,7 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@686976e191b89faba57d3206551f0f330d8cb249 # stable
         with:
-          targets: aarch64-linux-android,x86_64-linux-android
+          targets: aarch64-linux-android,armv7-linux-androideabi,x86_64-linux-android
 
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
         with:
@@ -47,10 +47,27 @@ jobs:
 
       - name: Unit tests and debug APK
         working-directory: OpenSchool-Mobile
-        run: ./gradlew --no-daemon testDebugUnitTest assembleDebug
+        run: |
+          # The release key from the repository secrets (base64 of a .jks), when it is set.
+          if [ -n "$KEYSTORE_B64" ]; then echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/release.jks"; export OPENSCHOOL_KEYSTORE="$RUNNER_TEMP/release.jks"; fi
+          ./gradlew --no-daemon testDebugUnitTest assembleDebug assembleRelease
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+          OPENSCHOOL_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          OPENSCHOOL_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          OPENSCHOOL_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
 
       - uses: actions/upload-artifact@v7
         with:
           name: openschool-android-debug
           path: OpenSchool-Mobile/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+
+      # R8-optimised, with baseline profiles: the one to install on a phone (much faster than the debug build on cheap phones).
+      # Signed with the release key from the secrets; without it with the runner's one-off debug key (then it cannot update an
+      # installed copy: uninstall first).
+      - uses: actions/upload-artifact@v7
+        with:
+          name: openschool-android-release
+          path: OpenSchool-Mobile/app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
