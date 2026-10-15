@@ -1,5 +1,6 @@
 package io.github.xomel45.openschool
 
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -105,7 +106,7 @@ fun TasksScreen(data: SchoolData, onExpired: () -> Unit) {
     LazyColumn(Modifier.fillMaxWidth().swipePages(canPrev && !filesTab, canNext && !filesTab, onPrev = { step(-1) }, onNext = { step(1) }), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         item { Text("Задания", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold) }
         item {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(Modifier.horizontalScroll(androidx.compose.foundation.rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 FilterChip(upcoming && !filesTab, { filesTab = false; upcoming = true; upPage = 0 }, label = { Text("Предстоящие") })
                 FilterChip(!upcoming && !filesTab, { filesTab = false; upcoming = false; pastPage = 0 }, label = { Text("Прошедшие") })
                 FilterChip(filesTab, { filesTab = true }, label = { Text("Файлы") })

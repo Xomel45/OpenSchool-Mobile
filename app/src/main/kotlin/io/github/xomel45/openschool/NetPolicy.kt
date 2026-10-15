@@ -33,7 +33,8 @@ class NetPolicy(context: Context) {
 
     fun choose(m: NetMode) { mode = m; prefs.edit().putString("mode", m.name).apply(); direct = m == NetMode.Direct }
 
-    val overrideSupported: Boolean get() = WebViewFeature.isFeatureSupported(WebViewFeature.PROXY_OVERRIDE)
+    // Without a system WebView the feature check itself would throw (it loads the WebView): then there is nothing to set.
+    val overrideSupported: Boolean get() = webViewInstalled() && WebViewFeature.isFeatureSupported(WebViewFeature.PROXY_OVERRIDE)
 
     /** Ask a public service which country the traffic leaves from, and settle `direct` for the mode. */
     suspend fun resolve(): String? {

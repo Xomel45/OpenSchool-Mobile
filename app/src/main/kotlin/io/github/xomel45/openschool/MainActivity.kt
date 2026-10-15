@@ -55,7 +55,8 @@ private fun Root(ui: UiPrefs, background: BackgroundPrefs, demo: Boolean, offlin
         is Screen.Login -> Centered {
             Text("OpenSchool", style = MaterialTheme.typography.headlineLarge)
             Text("Войдите через Госуслуги. Пароль вводится в окне Госуслуг, приложение его не видит.", Modifier.padding(top = 12.dp), textAlign = TextAlign.Center)
-            Button(onClick = model::openWeb, modifier = Modifier.padding(top = 24.dp)) { Text("Войти через Госуслуги") }
+            // Without a system WebView the login window cannot exist: the notice below says so instead of a crash.
+            Button(onClick = { if (webViewInstalled()) model.openWeb() }, enabled = webViewInstalled(), modifier = Modifier.padding(top = 24.dp)) { Text("Войти через Госуслуги") }
             if (s.message != null) Text(s.message, Modifier.padding(top = 16.dp), color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
             OldWebViewNotice()
         }
