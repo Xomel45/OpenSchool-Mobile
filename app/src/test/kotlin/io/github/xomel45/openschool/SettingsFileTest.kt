@@ -21,13 +21,13 @@ class SettingsFileTest {
     @Test fun desktopFileIsReadAndValuesAreChecked() {
         val s = SettingsFile.read(zip("config.json" to cfg(""","style":"sunrise","scheme":"dark","accent":"teal","zoom":1.3,"bg":{"mode":"solid","color":"#112233","dim":500}""")))
         assertEquals(StylePref.Sunrise, s.style); assertEquals(SchemePref.Dark, s.scheme); assertEquals(Accent.Teal, s.accent); assertEquals(1.3f, s.zoom)
-        assertEquals("solid", s.bg!!.mode); assertEquals("#112233", s.bg!!.color); assertEquals(80, s.bg!!.dim) // clamped
+        assertEquals("solid", s.bg!!.mode); assertEquals("#112233", s.bg.color); assertEquals(80, s.bg.dim) // clamped
     }
 
     @Test fun junkFallsBackAndACustomAccentIsKept() {
         val s = SettingsFile.read(zip("config.json" to cfg(""","style":"nope","scheme":7,"accent":"#ff00ff","zoom":9,"bg":{"mode":"x","color":"red"}""")))
         assertNull(s.style); assertNull(s.scheme); assertNull(s.zoom); assertEquals(true, s.accentGiven); assertEquals("#FF00FF", s.accentHex)
-        assertEquals("default", s.bg!!.mode); assertEquals("#E2E8F0", s.bg!!.color)
+        assertEquals("default", s.bg!!.mode); assertEquals("#E2E8F0", s.bg.color)
     }
 
     @Test fun foreignEntriesAreIgnoredAndBadArchivesRefused() {

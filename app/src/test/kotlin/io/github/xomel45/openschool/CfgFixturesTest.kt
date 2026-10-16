@@ -32,7 +32,7 @@ class CfgFixturesTest {
     @Test fun aPictureComesAlongAndAVideoIsLeftOut() {
         val img = SettingsFile.read(fixture("with-image.cfg"))
         assertEquals("media", img.bg!!.mode)
-        assertNotNull(img.picture); assertEquals(0x89.toByte(), img.picture!![0]); assertEquals('P'.code.toByte(), img.picture!![1])
+        assertNotNull(img.picture); assertEquals(0x89.toByte(), img.picture!![0]); assertEquals('P'.code.toByte(), img.picture[1])
         val vid = SettingsFile.read(fixture("with-video.cfg"))
         assertNull(vid.picture) // a phone does not show video: the file is skipped, the rest still applies
         assertEquals(StylePref.Sunrise, vid.style)
@@ -86,7 +86,7 @@ class CfgFixturesTest {
         val s = SettingsFile.read(fixture("from-android.cfg"))
         assertEquals(StylePref.Classic, s.style); assertEquals(SchemePref.Light, s.scheme); assertEquals(Accent.Amber, s.accent); assertEquals(1.3f, s.zoom)
         assertEquals(AppIcon.Night, s.icon)
-        assertEquals("solid", s.bg!!.mode); assertEquals("#112233", s.bg!!.color); assertEquals(20, s.bg!!.dim)
+        assertEquals("solid", s.bg!!.mode); assertEquals("#112233", s.bg.color); assertEquals(20, s.bg.dim)
         assertEquals(NotificationsPatch(false, true, false, true, 30, true, 23 * 60, 6 * 60 + 30, false, true, 18 * 60 + 30, false), s.notifications); assertEquals(NetMode.System, s.network)
         // the file in the repository is what this code produces today (a change of the format must change the shared file on purpose)
         assertEquals(androidConfig.toString(), JSONObject(java.util.zip.ZipInputStream(fixture("from-android.cfg").inputStream()).use { z -> z.nextEntry; z.readBytes().toString(Charsets.UTF_8) }).toString())

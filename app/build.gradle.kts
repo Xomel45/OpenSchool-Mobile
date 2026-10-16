@@ -4,6 +4,14 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
 }
 
+// The version is written once, in gradle.properties (openschool.version = X.Y.Z). versionCode grows with it: X*10000 + Y*100 + Z.
+val appVersion: String = providers.gradleProperty("openschool.version").get()
+val appVersionCode: Int = run {
+    val parts = appVersion.substringBefore('-').substringBefore('+').split('.').map { it.toInt() }
+    require(parts.size == 3 && parts[1] < 100 && parts[2] < 100) { "openschool.version must be X.Y.Z with Y, Z below 100: $appVersion" }
+    parts[0] * 10000 + parts[1] * 100 + parts[2]
+}
+
 android {
     namespace = "io.github.xomel45.openschool"
     compileSdk = 36
@@ -12,8 +20,8 @@ android {
         applicationId = "io.github.xomel45.openschool"
         minSdk = 26 // the same API level the native library is built for (scripts/build-bridge.sh)
         targetSdk = 36
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = appVersionCode
+        versionName = appVersion
     }
 
     // A real release key, when given (CI secrets or a local keystore): every build then updates the same installed app.
@@ -41,7 +49,7 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-    buildFeatures { compose = true }
+    buildFeatures { compose = true; buildConfig = true }
     sourceSets["main"].kotlin.srcDir("src/main/kotlin-gen")
     packaging { jniLibs.useLegacyPackaging = false }
 }
